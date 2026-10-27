@@ -272,6 +272,18 @@ pre{font:13px/1.65 var(--f-mono);background:var(--board);color:var(--board-ink);
 .tl .eyebrow{display:block;margin-bottom:4px}
 .tl h3{font-size:19px;margin-bottom:4px}
 .tl p{color:var(--ink-2);max-width:64ch}
+.roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:2px solid var(--ink)}
+.roles>div{padding:18px 20px 20px 0}
+.roles>div+div{padding-left:20px;border-left:1px solid var(--line)}
+.roles h3{font-size:19px;margin:4px 0 8px}
+.roles ul{margin:0;padding-left:18px;color:var(--ink-2)}
+.roles li{margin-bottom:4px}
+.roles .me{color:var(--signal)}
+.note{border-left:3px solid var(--signal);padding:4px 0 4px 16px;max-width:70ch}
+.note h3{font-size:18px;margin-bottom:4px}
+.note p,.note li{color:var(--ink-2)}
+.note ul{margin:6px 0 0;padding-left:18px}
+@media (max-width:760px){.roles{grid-template-columns:1fr}.roles>div+div{padding-left:0;border-left:0;border-top:1px solid var(--line)}}
 .faq{display:flex;flex-direction:column;border-top:1px solid var(--line)}
 .faq details{border-bottom:1px solid var(--line);padding:18px 0}
 .faq summary{cursor:pointer;font:700 18px var(--f-display);list-style:none;display:flex;justify-content:space-between;gap:16px}
@@ -532,7 +544,15 @@ footer.site{border-top:1px solid var(--line);padding-block:20px 28px;font-size:1
 <!-- HOW -->
 <div class="page gutter" id="p-how">
   <div class="wrap doc">
-    <header><span class="eyebrow">Cara kerja</span><h1>Satu lamaran, dari lowongan sampai balasan</h1><p>Semua langkah dijalankan Claude di akunmu. Garis oranye menandai titik di mana kamu yang memutuskan.</p></header>
+    <header><span class="eyebrow">Cara kerja</span><h1>Siapkan sekali, Claude jalan tiap pagi, kamu tinggal klik Submit</h1><p>Upload CV dan atur filter di sini satu kali. Setelah itu Claude mencari lowongan dan mengisi form setiap hari, lalu mengirim laporan ke emailmu. Satu-satunya yang tetap kamu lakukan sendiri adalah menekan Submit.</p></header>
+    <div class="roles">
+      <div><span class="eyebrow">Web ini · sekali</span><h3>Siapkan pengaturan</h3><ul><li>Upload CV</li><li>Pilih filter dan jam autopilot</li><li>Klik "Mulai Autopilot", lalu tempel teksnya ke Claude</li></ul></div>
+      <div><span class="eyebrow">Claude · tiap hari, otomatis</span><h3>Cari dan isi</h3><ul><li>Cek balasan email, update status</li><li>Cari lowongan yang lolos filter</li><li>Isi form di Chrome dan upload CV, berhenti tepat sebelum Submit</li><li>Kirim laporan ke emailmu</li></ul></div>
+      <div><span class="eyebrow me">Kamu · beberapa menit</span><h3>Cek dan Submit</h3><ul><li>Buka tab yang sudah terisi</li><li>Periksa isinya, centang consent</li><li>Klik Submit</li></ul></div>
+    </div>
+    <div class="note"><h3>Web ini tidak menjalankan AI</h3><p>Halaman ini hanya menyusun pengaturanmu. Tombol "Mulai Autopilot" menyalin perintah dan pengaturan itu; begitu ditempel ke aplikasi Claude yang sudah terpasang plugin, Claude membuat profil dari CV, sheet tracker, board status, dan jadwal harian di akunmu sendiri.</p></div>
+    <div class="note"><h3>Kenapa Claude tidak menekan Submit?</h3><p>Lamaran dikirim atas namamu, dan banyak form memuat pernyataan atau persetujuan yang secara hukum harus kamu sendiri yang setujui. Lamaran yang sudah terkirim juga tidak bisa ditarik. Jadi Claude mengerjakan bagian yang lama, dan keputusan terakhir tetap di tanganmu.</p></div>
+    <div class="note"><h3>Supaya autopilot jalan</h3><ul><li>Gmail dan Google Drive/Sheets terhubung di aplikasi Claude.</li><li>Chrome menyala dengan ekstensi Claude in Chrome pada jam autopilot. Kalau Chrome mati, lowongan masuk antrean dan diisi di putaran berikutnya.</li><li>Kalau memakai LinkedIn, kamu sudah login LinkedIn di Chrome itu.</li></ul></div>
     <div class="flow" aria-label="Diagram alur">
       <svg viewBox="0 0 900 230" role="img" aria-labelledby="flow-t"><title id="flow-t">Alur Job Autopilot dari sumber lowongan sampai tracker</title>
         <g font-family="IBM Plex Sans, sans-serif" font-size="13" fill="var(--ink)">
@@ -542,8 +562,8 @@ footer.site{border-top:1px solid var(--line);padding-block:20px 28px;font-size:1
           <rect x="210" y="70" width="130" height="50" rx="3" fill="var(--panel)" stroke="var(--ink)"/><text x="225" y="92" font-weight="600">Filter keras</text><text x="225" y="109" font-size="11.5" fill="var(--muted)">bahasa, visa, gaji</text>
           <path d="M340 95 L380 95" stroke="var(--muted)" stroke-width="1.5"/>
           <rect x="380" y="70" width="130" height="50" rx="3" fill="var(--panel)" stroke="var(--ink)"/><text x="395" y="92" font-weight="600">Skor kecocokan</text><text x="395" y="109" font-size="11.5" fill="var(--muted)">vs profil CV</text>
-          <path d="M510 95 L550 95" stroke="var(--signal)" stroke-width="2"/>
-          <rect x="550" y="70" width="110" height="50" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="565" y="92" font-weight="600">Kamu pilih</text><text x="565" y="109" font-size="11.5" fill="var(--ink-2)">dari shortlist</text>
+          <path d="M510 95 L550 95" stroke="var(--muted)" stroke-width="1.5"/>
+          <rect x="550" y="70" width="110" height="50" rx="3" fill="var(--panel)" stroke="var(--ink)"/><text x="565" y="92" font-weight="600">Antrean</text><text x="565" y="109" font-size="11.5" fill="var(--muted)">yang lolos</text>
           <path d="M660 95 L700 95" stroke="var(--muted)" stroke-width="1.5"/>
           <rect x="700" y="70" width="90" height="50" rx="3" fill="var(--panel)" stroke="var(--ink)"/><text x="713" y="92" font-weight="600">Isi form</text><text x="713" y="109" font-size="11.5" fill="var(--muted)">di Chrome</text>
           <path d="M790 95 L820 95" stroke="var(--signal)" stroke-width="2"/>
@@ -556,10 +576,11 @@ footer.site{border-top:1px solid var(--line);padding-block:20px 28px;font-size:1
       </svg>
     </div>
     <div class="timeline">
-      <div class="tl"><span class="eyebrow">Pagi · ± 5 menit</span><h3>"Find jobs"</h3><p>Claude memindai lowongan baru, membuang yang tidak lolos filter, dan memberi shortlist berperingkat dengan skor serta alasan singkat.</p></div>
-      <div class="tl"><span class="eyebrow">Kamu memilih</span><h3>"Apply to 1, 3 and 5"</h3><p>Form dibuka di tab Chrome dan diisi dari profilmu. Claude berhenti sebelum Submit dan memberi tahu apa yang perlu kamu isi sendiri.</p></div>
-      <div class="tl"><span class="eyebrow">Lowongan via email</span><h3>Draft dulu, kirim belakangan</h3><p>Untuk lowongan yang minta CV dikirim lewat email, Claude membuat draft di Gmail. Email baru terkirim setelah kamu bilang kirim.</p></div>
-      <div class="tl"><span class="eyebrow">Sore</span><h3>"Check my application emails"</h3><p>Balasan rekruter dicocokkan ke lamaran. Reject, tes, dan undangan interview langsung tercatat, dan yang butuh tindakan muncul paling atas.</p></div>
+      <div class="tl"><span class="eyebrow">Jam autopilot (default 10:00) · otomatis</span><h3>Cek balasan</h3><p>Email rekruter dan ATS dicocokkan ke lamaranmu. Reject, tes, dan undangan interview langsung tercatat di tracker.</p></div>
+      <div class="tl"><span class="eyebrow">Lanjut · otomatis</span><h3>Cari lowongan</h3><p>Lowongan baru disaring dengan filter keras (bahasa, visa, gaji, lokasi) lalu diberi skor kecocokan dengan CV. Yang lolos masuk antrean, sampai batas harianmu.</p></div>
+      <div class="tl"><span class="eyebrow">Lanjut · otomatis</span><h3>Isi form sampai sebelum Submit</h3><p>Satu tab Chrome per lowongan. Field diisi dari profilmu dan CV diunggah. Lowongan yang minta CV lewat email dibuatkan draft di Gmail, dan baru terkirim setelah kamu bilang kirim.</p></div>
+      <div class="tl"><span class="eyebrow">Setelah selesai</span><h3>Laporan masuk email</h3><p>Daftar form yang siap di-submit beserta yang masih perlu kamu isi, balasan perusahaan, dan jumlah lowongan yang dilewati beserta alasannya.</p></div>
+      <div class="tl"><span class="eyebrow">Kapan pun kamu sempat</span><h3>Cek, centang consent, klik Submit</h3><p>Status berubah jadi terkirim saat email konfirmasi masuk. Semua lamaran dan statusnya bisa dilihat di <a href="dashboard.html">Dashboard</a>.</p></div>
     </div>
   </div>
 </div>
