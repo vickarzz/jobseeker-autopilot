@@ -1,7 +1,7 @@
 ---
 name: find-jobs
 description: >
-  This skill should be used when the user says "find jobs", "scan jobs", "search jobs in <country>",
+  This skill should be used when the user says "find jobs", "scan jobs", "search jobs in Germany",
   "carikan loker", "scan lowongan", "any new jobs today", or asks to look for roles that match
   their CV and filters on LinkedIn, company career sites or recruiter emails.
 metadata:
