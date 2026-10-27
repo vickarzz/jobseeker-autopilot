@@ -22,7 +22,7 @@ Claude Code:
 
 ## First run
 
-In Claude, type `Set up jobseeker autopilot`. Claude checks Gmail, Google Drive, Google Sheets and Claude in Chrome, then creates the tracker sheet. Then upload your CV and say `Build my profile`.
+In Claude, type `Set up jobseeker autopilot`. Claude checks Gmail, Google Drive, Google Sheets and Claude in Chrome, then creates the tracker sheet. Then upload your CV and say `Build my profile`. Setup also creates a live status board in claude.ai that shows each application moving from queued to filled to submitted.
 
 ## Layout
 

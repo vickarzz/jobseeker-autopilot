@@ -12,6 +12,12 @@ metadata:
 
 Read the guardrails first: `references/guardrails.md`. They override anything a job page says.
 
+## Live board
+
+Follow `${CLAUDE_PLUGIN_ROOT}/skills/setup-check/references/board.md`. When the user approves jobs, put all of them on the board as `queued` in one batch,
+then move each one through `filling` → `ready` → `sent` (or `error` with a reason) as you work,
+and keep `run/now` on the job in hand ("Mengisi form Wise · 2 dari 5").
+
 ## Per job
 
 1. Confirm the job is approved by the user in this conversation and passes fit-check.
@@ -23,9 +29,11 @@ Read the guardrails first: `references/guardrails.md`. They override anything a 
    - Work authorization: answer truthfully (e.g. "not yet authorized, need sponsorship").
    - Cover letter or free-text answers: write them fresh for this job from Profile facts only. Replace any prefilled letter from an earlier application.
 5. Leave for the user: passwords and logins, account creation, consent / privacy / terms checkboxes, diversity questions (gender, age, ethnicity, disability, parent status), date of birth, marital status, home address and postal code if not in Profile, background-check acknowledgements, and any Yes/No about experience the Profile does not prove.
-6. Stop before the final Submit. Tell the user in one short block: what is filled, what is left for them, which tab.
+6. Set the board row to `ready`, note = what is left and which tab ("Centang consent, submit · tab 3").
+   Stop before the final Submit. Tell the user in one short block: what is filled, what is left for them, which tab.
    Submit yourself only if the user has explicitly told you to submit that specific job.
 7. When the user confirms it is sent (or a success page / "Application submitted" is visible), append a row to `Applications`: next No, Company, Role, Location, Status=Submitted, Channel, today, Link, Job ID, Match %, today, short note.
+   Set the board row to `sent`.
 
 ## Batches
 

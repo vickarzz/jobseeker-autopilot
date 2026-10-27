@@ -24,6 +24,7 @@ For each connector, load its tools (ToolSearch if deferred) and make one harmles
 | Google Drive | search files named "Jobseeker Autopilot" | storing CV and profile |
 | Google Sheets | read the tracker (step 2) | tracker |
 | Claude in Chrome | `tabs_context_mcp` | filling application forms, LinkedIn |
+| Artifacts | Artifact and ArtifactData tools present | live status board (optional) |
 
 - Tool absent: status Missing. Tell the user which connector to add in Claude settings (Connectors) or, for Chrome, to install the Claude in Chrome extension and keep Chrome open. If a connector-suggestion tool is available, offer it.
 - Tool present but the call errors: status Error, quote the error in one line, suggest reconnecting.
@@ -50,7 +51,13 @@ Read the Profile and Filters tabs.
 - Empty Filters: list the filter keys from `${CLAUDE_PLUGIN_ROOT}/skills/fit-check/references/filters.md` and ask for the ones that matter most (countries, minimum salary, visa sponsorship needed, languages, target roles).
 - If the user pasted a settings block from the Jobseeker Autopilot web page (it starts with `JOB-AUTOPILOT-SETTINGS`), write each line into Filters / Profile and confirm.
 
-## 4. Summary
+## 4. Status board
+
+If Filters has no `board_url`, create the live board and seed it from the tracker as described in
+`references/board.md`. If it exists, open it once with the Artifact tool (`read`) to confirm it still loads.
+Add a row "Status board" to the summary table with its link.
+
+## 5. Summary
 
 End with the table and one line: "Ready" when all checks pass, otherwise the single most important fix.
 Do not change any account settings yourself.

@@ -17,6 +17,7 @@ metadata:
 4. Classify the message with `references/classify.md`.
 5. Update the row: Status, Last Update = message date, Notes = one line (e.g. "Interview invite 30 Oct, needs slot reply").
    Never downgrade a later status with an older email.
+   Mirror the new status on the live board (`${CLAUDE_PLUGIN_ROOT}/skills/setup-check/references/board.md`): interview, offer or rejected, note = the one-line action.
 6. Set `last_inbox_sync` to today.
 
 ## Report to the user

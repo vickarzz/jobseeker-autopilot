@@ -1,6 +1,6 @@
 {
   "name": "jobseeker-autopilot",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Finds jobs that match your CV and filters, checks fit, fills applications in your browser for you to submit, drafts recruiter emails, and keeps a Google Sheet tracker in sync with your inbox.",
   "author": {
     "name": "Ahmad Zulfikar Rafsanjani"

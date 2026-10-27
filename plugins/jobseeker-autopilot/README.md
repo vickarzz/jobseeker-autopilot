@@ -24,6 +24,10 @@ Finds jobs that match your CV, checks the fit, fills applications in your own Ch
 | "draft an email for this job" | Gmail draft; sent only when you say so |
 | "check my application emails" | tracker statuses updated, actions listed |
 
+## Status board
+
+Setup also creates a private live board in claude.ai (link in the Filters tab, key `board_url`). Every job shows up there as Claude works on it: ANTRE, DIISI, SIAP SUBMIT, TERKIRIM, then INTERVIEW or DITOLAK after an inbox sync.
+
 ## What stays with you
 
 Passwords and logins, consent and terms checkboxes, diversity questions, date of birth, home address, the final Submit, and sending emails.

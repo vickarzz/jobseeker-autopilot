@@ -13,6 +13,9 @@ metadata:
 Read `Profile`, `Filters`, `Applications` and `Skip` from the `Jobseeker Autopilot Tracker` first.
 If Profile or Filters is empty, run the profile-from-cv or setup-check skill instead.
 
+Live board: follow `${CLAUDE_PLUGIN_ROOT}/skills/setup-check/references/board.md`. Set `run/now` to running with the source being scanned,
+and update `scanned` / `passed` as you go.
+
 ## Sources, in this order
 
 1. **Company career sites through public ATS job APIs** (preferred: allowed, structured, no login).
@@ -36,4 +39,5 @@ Return a ranked shortlist table: # | Company | Role | Location | Salary | Match 
 Then a short "Excluded" line grouped by reason (language, no sponsorship, already applied, salary below floor, low match).
 Write excluded items with a clear reason to the `Skip` tab so they are not checked again.
 Save the shortlist to a Drive file `Jobseeker Autopilot/shortlists/<YYYY-MM-DD>.md`.
+Put each excluded posting on the board as `skip` with its reason. Set `run/now` to idle with the counts.
 Ask which ones to apply to; do not start applying without the user's go-ahead.

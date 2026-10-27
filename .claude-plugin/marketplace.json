@@ -8,7 +8,7 @@
       "name": "jobseeker-autopilot",
       "source": "./plugins/jobseeker-autopilot",
       "description": "Finds jobs that match your CV and filters, checks fit, fills applications in your browser for you to submit, drafts recruiter emails, and keeps a Google Sheet tracker in sync with your inbox.",
-      "version": "0.2.0"
+      "version": "0.3.0"
     }
   ],
   "description": "Jobseeker Autopilot: semi-automated job search and applications with Claude."
