@@ -363,12 +363,12 @@ footer.site{border-top:1px solid var(--line);padding-block:20px 28px;font-size:1
         <p class="fine">Memakai langganan Claude-mu sendiri. CV dibaca di browser ini, tidak diunggah ke server.</p>
       </div>
       <div class="board" aria-label="Contoh papan status lamaran">
-        <div class="board-head"><b>DEPARTURES</b><span>CONTOH · <span id="clock">08:00</span></span></div>
+        <div class="board-head"><b>DEPARTURES</b><span><span id="board-mode">CONTOH</span> · <span id="clock">08:00</span></span></div>
         <div class="board-scroll"><table>
           <thead><tr><th>ROLE</th><th>KOTA</th><th>MATCH</th><th>STATUS</th></tr></thead>
           <tbody id="board-rows"></tbody>
         </table></div>
-        <div class="board-foot"><span>42 DIPINDAI · 9 LOLOS FILTER</span><span class="blink">● LIVE</span></div>
+        <div class="board-foot"><span id="board-foot">42 DIPINDAI · 9 LOLOS FILTER</span><a id="board-link" href="dashboard.html" style="color:inherit;text-decoration:none">BUKA DASHBOARD →</a></div>
       </div>
     </section>
 
@@ -611,6 +611,27 @@ window.addEventListener('hashchange',route);
 /* ---------- home board ---------- */
 const BOARD=[['Senior BI Developer','AMSTERDAM','91%','sent','TERKIRIM'],['Power BI Analyst','VILNIUS','88%','ready','SIAP SUBMIT'],['Data Analytics Mgr','TALLINN','84%','filling','DIISI'],['Senior Data Analyst','BERLIN','82%','interview','INTERVIEW'],['BI Engineer','MUNICH','61%','skip','DILEWATI'],['Analytics Lead','ROTTERDAM','—','skip','WAJIB DUTCH']];
 $('board-rows').innerHTML=BOARD.map(r=>`<tr><td>${r[0]}</td><td><span class="flap">${r[1]}</span></td><td>${r[2]}</td><td><span class="st ${r[3]}">${r[4]}</span></td></tr>`).join('');
+/* home board: real data when a tracker link or file was loaded in the dashboard */
+const HB={sent:['sent','TERKIRIM'],interview:['interview','INTERVIEW'],offer:['interview','OFFER'],ready:['ready','PERLU AKSI'],pending:['filling','MENUNGGU'],rejected:['skip','DITOLAK'],skip:['skip','DILEWATI']};
+function hbStatus(t){t=(t||'').toLowerCase();if(/offer/.test(t))return'offer';if(/interview|assessment|shortlist/.test(t))return'interview';if(/reject|ditolak|not selected/.test(t))return'rejected';if(/skip/.test(t))return'skip';if(/complete|draft|ready/.test(t))return'ready';if(/pending|referral/.test(t))return'pending';return'sent'}
+function hbCSV(t){const o=[];let r=[],f='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}else if(c==='"')q=true;else if(c===','){r.push(f);f=''}else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;r.push(f);f='';if(r.some(x=>x.trim()))o.push(r);r=[]}else f+=c}r.push(f);if(r.some(x=>x.trim()))o.push(r);return o}
+function hbDate(x){const m=(x||'').match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})/),M={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};if(m)return new Date(+m[3],M[m[2].toLowerCase()],+m[1]);const d=new Date(x);return isNaN(d)?new Date(0):d}
+function hbRender(text){
+  const t=hbCSV(text);if(t.length<2)return;const h=t[0].map(x=>x.trim().toLowerCase()),ix=n=>h.findIndex(x=>x.startsWith(n));
+  const ci=ix('company'),ri=ix('role'),li=ix('location'),si=ix('status'),di=ix('applied');if(ci<0||ri<0)return;
+  const rows=t.slice(1).filter(r=>(r[ci]||'').trim()).map(r=>({role:r[ri],co:r[ci],city:(r[li]||'').replace(/\(.*?\)/g,'').split(',')[0].split('/')[0].trim()||'—',st:hbStatus(r[si]),d:hbDate(r[di])}));
+  const rank={interview:0,offer:0,ready:1,pending:2,sent:3,rejected:4,skip:5};
+  const pick=[...rows].sort((a,b)=>rank[a.st]-rank[b.st]||b.d-a.d).slice(0,6);
+  $('board-rows').innerHTML=pick.map(r=>`<tr><td title="${esc(r.co)}">${esc(r.role.length>28?r.role.slice(0,27)+'…':r.role)}</td><td><span class="flap">${esc(r.city.toUpperCase())}</span></td><td>—</td><td><span class="st ${HB[r.st][0]}">${HB[r.st][1]}</span></td></tr>`).join('');
+  const c=k=>rows.filter(r=>r.st===k).length;
+  $('board-foot').textContent=`${rows.length} LAMARAN · ${c('interview')+c('offer')} TAHAP LANJUT · ${c('rejected')} DITOLAK`;
+  $('board-mode').textContent='DATAMU';
+}
+async function hbLoad(){
+  let mode,url,saved;try{mode=JSON.parse(localStorage.getItem('ja2.dash.mode')||'""');url=JSON.parse(localStorage.getItem('ja2.dash.url')||'""');saved=JSON.parse(localStorage.getItem('ja2.dash.csv')||'null')}catch(e){return}
+  try{if(mode==='url'&&url){const r=await fetch(url,{cache:'no-store'});if(r.ok)hbRender(await r.text())}else if(mode==='file'&&saved)hbRender(saved.text)}catch(e){}
+}
+hbLoad();setInterval(hbLoad,3600e3);
 (function tick(){const d=new Date();$('clock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');setTimeout(tick,30000)})();
 
 /* ---------- step 1 install ---------- */
