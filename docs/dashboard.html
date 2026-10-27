@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Dashboard data lamaran kerja dari tracker Jobseeker Autopilot.">
+<style>html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Dashboard Lamaran · Jobseeker Autopilot</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --ground:#eef0ec; --panel:#ffffff; --panel-2:#f6f7f4; --ink:#121a24; --ink-2:#3a4552; --muted:#6a7581; --line:#d8dcd5;
+  --signal:#f0531c; --signal-ink:#ffffff; --signal-soft:#fde6dc; --go:#14824f; --go-soft:#dcf1e6; --hold:#a86a00; --hold-soft:#fbefd6;
+  --board:#121a24; --board-ink:#f3f1e8; --board-dim:#8a96a3; --board-line:#26313d;
+  --f-display:"Bricolage Grotesque","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:3px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#0d1218; --panel:#151c24; --panel-2:#1a222b; --ink:#eef1ee; --ink-2:#c5ccd3; --muted:#8f9aa5; --line:#2a343f;
+  --signal:#ff7240; --signal-ink:#1a0b05; --signal-soft:#3a2016; --go:#4fcf8f; --go-soft:#173226; --hold:#f0b54a; --hold-soft:#33291a;
+  --board:#070a0e; --board-ink:#f3f1e8; --board-dim:#7d8995; --board-line:#1d2630; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#0d1218; --panel:#151c24; --panel-2:#1a222b; --ink:#eef1ee; --ink-2:#c5ccd3; --muted:#8f9aa5; --line:#2a343f;
+  --signal:#ff7240; --signal-ink:#1a0b05; --signal-soft:#3a2016; --go:#4fcf8f; --go-soft:#173226; --hold:#f0b54a; --hold-soft:#33291a;
+  --board:#070a0e; --board-ink:#f3f1e8; --board-dim:#7d8995; --board-line:#1d2630; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.55 var(--f-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--panel)}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1120px;margin:0 auto}
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.015em}
+p{margin:0}
+a{color:inherit}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.eyebrow{font:500 11.5px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--panel);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:20px;height:60px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font:800 18px var(--f-display);letter-spacing:-.02em}
+.logo svg{width:26px;height:26px}
+.toplinks{display:flex;gap:4px;margin-left:auto}
+.toplinks a{text-decoration:none;padding:8px 12px;border-radius:var(--r);color:var(--ink-2);font-weight:500;font-size:14px}
+.toplinks a:hover{background:var(--panel-2)}
+.toplinks a[aria-current="page"]{color:var(--ink);box-shadow:inset 0 -2px 0 var(--signal)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:var(--r);padding:9px 14px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn-primary{background:var(--signal);color:var(--signal-ink)}
+.btn-quiet{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn-quiet:hover{border-color:var(--ink-2)}
+.btn[aria-disabled="true"]{opacity:.45;pointer-events:none}
+input[type=text]{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:9px 12px;min-width:0;font-size:14px}
+
+main{padding-block:32px 64px;display:flex;flex-direction:column;gap:28px}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.head h1{font-size:clamp(30px,4.4vw,44px);font-weight:800;line-height:1}
+.src{display:flex;align-items:center;gap:8px;margin-top:10px;font:500 12.5px var(--f-mono);color:var(--muted);flex-wrap:wrap}
+.src .tag{background:var(--hold-soft);color:var(--hold);padding:2px 7px;border-radius:2px;font-weight:700;letter-spacing:.08em}
+.src .tag.live{background:var(--go-soft);color:var(--go)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+.load{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.load>div{padding:16px 18px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.load>div+div{border-left:1px solid var(--line)}
+.load h2{font:600 15px var(--f-body);letter-spacing:0}
+.load p{font-size:13px;color:var(--muted)}
+.load .row{display:flex;gap:8px;flex-wrap:wrap}
+.load .row input{flex:1 1 180px;font-family:var(--f-mono);font-size:12.5px}
+.load small{font-size:12px;color:var(--muted)}
+.load small.err{color:var(--signal)}
+
+.insight{font:700 clamp(19px,2.4vw,24px)/1.3 var(--f-display);letter-spacing:-.01em;max-width:60ch}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.kpi{padding:18px 18px 18px 0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi+.kpi{padding-left:18px;border-left:1px solid var(--line)}
+.kpi b{font:800 34px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.kpi small{font-size:12.5px;color:var(--muted)}
+.kpi.act b{color:var(--signal)}
+
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card h2{font:600 15px var(--f-body);letter-spacing:0}
+.card h2 small{font-weight:400;color:var(--muted);margin-left:6px}
+.hbars{display:flex;flex-direction:column;gap:7px}
+.hb{display:grid;grid-template-columns:118px minmax(0,1fr) 34px;gap:10px;align-items:center;font-size:13px}
+.hb .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
+.hb .n{text-align:right;font:500 12.5px var(--f-mono);font-variant-numeric:tabular-nums}
+.hb .t{height:14px;background:var(--panel-2);border-radius:2px}
+.hb .f{height:100%;border-radius:0 4px 4px 0;background:var(--signal);min-width:2px}
+.hb .f.sent{background:var(--go)}.hb .f.interview,.hb .f.offer{background:#3b82c4}.hb .f.ready,.hb .f.error{background:var(--signal)}
+.hb .f.pending,.hb .f.filling,.hb .f.queued{background:var(--hold)}.hb .f.rejected,.hb .f.skip{background:var(--muted)}
+.cols{display:flex;align-items:flex-end;gap:2px;height:150px;border-bottom:1px solid var(--line);padding-top:16px;position:relative}
+.cols .c{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;cursor:default}
+.cols .c i{display:block;background:var(--signal);border-radius:4px 4px 0 0;min-height:2px}
+.cols .c:hover i{filter:brightness(1.12)}
+.axis{display:flex;justify-content:space-between;font:11px var(--f-mono);color:var(--muted)}
+.grid-line{position:absolute;left:0;right:0;border-top:1px dashed var(--line);font:10.5px var(--f-mono);color:var(--muted)}
+.grid-line span{position:absolute;right:0;top:-15px;background:var(--panel);padding-left:4px}
+
+.board{background:var(--board);color:var(--board-ink);border-radius:6px;padding:16px 16px 8px;font-family:var(--f-mono);min-width:0}
+.bhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--board-line);font-size:11px;letter-spacing:.14em;color:var(--board-dim)}
+.bhead b{color:var(--board-ink);font-size:13px;letter-spacing:.18em}
+.bhead input{background:#1f2a36;border:0;color:var(--board-ink);font:12px var(--f-mono);padding:7px 10px;border-radius:2px;width:220px;max-width:100%}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;padding:12px 0 6px}
+.tabs button{font:500 11px var(--f-mono);letter-spacing:.1em;color:var(--board-dim);background:transparent;border:1px solid var(--board-line);border-radius:2px;padding:6px 9px;cursor:pointer}
+.tabs button b{color:var(--board-ink);margin-left:6px}
+.tabs button[aria-pressed="true"]{background:#1f2a36;color:var(--board-ink);border-color:#1f2a36}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:720px}
+th{text-align:left;font-weight:500;color:var(--board-dim);font-size:10.5px;letter-spacing:.12em;padding:10px 6px 6px}
+td{padding:8px 6px;border-top:1px solid var(--board-line);vertical-align:top;font-variant-numeric:tabular-nums}
+td .r{color:var(--board-ink)}td .co{color:var(--board-dim);font-size:11.5px}
+td a{text-decoration:none}td a:hover .r{text-decoration:underline}
+.flap{display:inline-block;background:#1f2a36;padding:2px 6px;border-radius:2px;letter-spacing:.04em;white-space:nowrap}
+.st{font-weight:700;letter-spacing:.08em;font-size:11px;white-space:nowrap}
+.st.sent{color:#5fd39a}.st.interview,.st.offer{color:#7cc4ff}.st.ready,.st.error{color:#f0531c}.st.pending,.st.filling,.st.queued{color:#ffb547}.st.rejected,.st.skip{color:var(--board-dim)}
+.bfoot{display:flex;justify-content:space-between;font-size:10.5px;color:var(--board-dim);padding:10px 6px 4px;letter-spacing:.08em;border-top:1px solid var(--board-line)}
+.more{font:500 11px var(--f-mono);letter-spacing:.1em;color:var(--board-dim);background:transparent;border:0;padding:10px 6px;cursor:pointer}
+.tip{position:fixed;z-index:40;pointer-events:none;background:var(--ink);color:var(--ground);font:500 12px var(--f-mono);padding:6px 9px;border-radius:3px;white-space:nowrap}
+.note{font-size:12.5px;color:var(--muted)}
+
+@media (max-width:900px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.kpi:nth-child(4){padding-left:0;border-left:0}.charts,.load{grid-template-columns:1fr}.load>div+div{border-left:0;border-top:1px solid var(--line)}}
+@media (max-width:620px){.toplinks a:not(.keep){display:none}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi:nth-child(odd){padding-left:0;border-left:0}.kpi:nth-child(even){padding-left:18px;border-left:1px solid var(--line)}.hb{grid-template-columns:92px minmax(0,1fr) 30px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-plane" viewBox="0 0 24 24"><path fill="currentColor" d="M21 15.5v-1.8l-7.6-4.6V4.2a1.4 1.4 0 0 0-2.8 0v4.9L3 13.7v1.8l7.6-2.3v4.6l-2.1 1.5V21l3.5-1 3.5 1v-1.7l-2.1-1.5v-4.6z"/></symbol></svg>
+
+<header class="topbar gutter">
+  <div class="wrap">
+    <a class="logo" href="./#home"><svg><use href="#i-plane" style="color:var(--signal)"/></svg>Jobseeker Autopilot</a>
+    <nav class="toplinks" aria-label="Menu">
+      <a href="./#home">Beranda</a>
+      <a href="./#how">Cara kerja</a>
+      <a href="./#faq">FAQ</a>
+      <a href="./#install" class="keep">Setup</a>
+      <a href="dashboard.html" class="keep" aria-current="page">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap gutter">
+  <div class="head">
+    <div>
+      <span class="eyebrow">Data lamaran</span>
+      <h1>Dashboard lamaran</h1>
+      <div class="src" id="src"></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-quiet" id="refresh" type="button" hidden>Muat ulang data</button>
+      <a class="btn btn-primary" id="open-board" target="_blank" rel="noopener" aria-disabled="true">Buka papan live</a>
+    </div>
+  </div>
+
+  <section class="load" aria-label="Sumber data">
+    <div>
+      <h2>File CSV tracker</h2>
+      <p>Di Google Sheets: tab Applications → File → Download → CSV, lalu pilih filenya di sini.</p>
+      <div class="row"><label class="btn btn-quiet" for="csv-file">Pilih file CSV</label><input type="file" id="csv-file" accept=".csv,text/csv" hidden></div>
+      <small id="file-msg">Data dibaca di browser ini saja, tidak dikirim ke mana pun.</small>
+    </div>
+    <div>
+      <h2>Link CSV Google Sheet</h2>
+      <p>File → Share → Publish to web → pilih tab Applications, format CSV. Dashboard ikut update tiap dibuka.</p>
+      <div class="row"><input type="text" id="csv-url" spellcheck="false" autocomplete="off" placeholder="https://docs.google.com/.../pub?output=csv" aria-label="Link CSV"><button class="btn btn-quiet" id="csv-go" type="button">Muat</button></div>
+      <small id="url-msg">Siapa pun yang punya link ini bisa membaca tab yang dipublikasikan.</small>
+    </div>
+    <div>
+      <h2>Papan live di Claude</h2>
+      <p>Link papan pribadi dari setup (tab Filters, key board_url). Status di sana berubah selagi Claude bekerja.</p>
+      <div class="row"><input type="text" id="board-url" spellcheck="false" autocomplete="off" placeholder="https://claude.ai/artifact/..." aria-label="Link papan live"></div>
+      <small id="board-msg">Hanya kamu yang bisa membuka papan itu.</small>
+    </div>
+  </section>
+
+  <p class="insight" id="insight"></p>
+  <section class="kpis" id="kpis" aria-label="Ringkasan"></section>
+
+  <section class="charts">
+    <div class="card"><h2>Status lamaran</h2><div class="hbars" id="c-status"></div></div>
+    <div class="card"><h2>Lamaran per hari<small id="c-days-sub"></small></h2><div class="cols" id="c-days"></div><div class="axis" id="c-days-axis"></div></div>
+    <div class="card"><h2>Negara tujuan</h2><div class="hbars" id="c-country"></div></div>
+    <div class="card"><h2>Channel</h2><div class="hbars" id="c-channel"></div></div>
+  </section>
+
+  <section class="board" aria-label="Daftar lamaran">
+    <div class="bhead"><b>DEPARTURES</b><input type="text" id="q" placeholder="Cari perusahaan, role, kota" aria-label="Cari"></div>
+    <div class="tabs" id="tabs" role="group" aria-label="Filter status"></div>
+    <div class="tscroll"><table>
+      <thead><tr><th>TANGGAL</th><th>ROLE</th><th>LOKASI</th><th>CHANNEL</th><th>STATUS</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <div id="more-wrap"></div>
+    <div class="bfoot"><span id="bfoot"></span><span id="bfoot-r"></span></div>
+  </section>
+  <p class="note">Status dibaca dari kolom Status: Submitted, Rejected, Interview, Assessment, Offer, Referral pending, Email drafted, dan sejenisnya.</p>
+</main>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const S={get(k,d){try{const v=localStorage.getItem('ja2.dash.'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('ja2.dash.'+k,JSON.stringify(v))}catch(e){}}};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LABEL={ready:'PERLU AKSI',error:'GAGAL',interview:'INTERVIEW',offer:'OFFER',filling:'DIISI',queued:'ANTRE',pending:'MENUNGGU',sent:'TERKIRIM',rejected:'DITOLAK',skip:'DILEWATI'};
+const ORDER=['ready','interview','offer','pending','sent','rejected','skip'];
+const CITY={tallinn:'Estonia',vilnius:'Lithuania',kaunas:'Lithuania',riyadh:'Saudi Arabia',jeddah:'Saudi Arabia',jubail:'Saudi Arabia',dammam:'Saudi Arabia',dubai:'UAE','abu dhabi':'UAE',doha:'Qatar',singapore:'Singapore',berlin:'Germany',munich:'Germany',amsterdam:'Netherlands',rotterdam:'Netherlands',dublin:'Ireland',tokyo:'Japan',jakarta:'Indonesia','kuala lumpur':'Malaysia',bangkok:'Thailand',warsaw:'Poland',remote:'Remote'};
+const ALIAS={'united arab emirates':'UAE','ksa':'Saudi Arabia','nld':'Netherlands','the netherlands':'Netherlands'};
+
+const EXAMPLE=[
+['Contoh Fintech','Senior BI Developer','Amsterdam, Netherlands','Submitted','Company site (Greenhouse)',-6],
+['Contoh Payments','Power BI Analyst','Vilnius, Lithuania','Interview','LinkedIn Easy Apply',-6],
+['Contoh Marketplace','Data Analytics Manager','Tallinn, Estonia','Rejected','Company site (Ashby)',-5],
+['Contoh Bank','Senior Data Analyst','Riyadh, Saudi Arabia','Submitted','LinkedIn Easy Apply',-5],
+['Contoh Retail Group','Analytics Lead','Dubai, UAE','Submitted','Company site (Workday)',-5],
+['Contoh Telco','BI Engineer','Berlin, Germany','Referral pending','Friend referral',-4],
+['Contoh Airline','Loyalty Data Manager','Doha, Qatar','Rejected','Company site',-4],
+['Contoh SaaS','Analytics Engineer','Vilnius, Lithuania','Submitted','Company site (Ashby)',-3],
+['Contoh Consulting','Data & AI Manager','Riyadh, Saudi Arabia','Assessment','Company site',-3],
+['Contoh Bank Asia','Senior Data Analyst','Singapore','Submitted','Company site (Workday)',-2],
+['Contoh Logistics','Reporting Specialist','Tallinn, Estonia','Submitted','Company site',-2],
+['Contoh Recruiter','Power BI Developer','Remote','Email drafted','Email to recruiter',-1],
+['Contoh Gaming','Data Warehouse Developer','Estonia','Submitted','Company site',-1],
+['Contoh Travel','Senior Analyst','Bangkok, Thailand','Submitted','Company site',0]];
+
+let rows=[],source=null,tab='all',query='',shown=50;
+
+function parseCSV(t){
+  const out=[];let row=[],f='',q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;else if(c===','){row.push(f);f=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(f);f='';if(row.some(x=>x.trim()))out.push(row);row=[]}
+    else f+=c}
+  row.push(f);if(row.some(x=>x.trim()))out.push(row);return out;
+}
+function status(s,hasReason){
+  s=(s||'').toLowerCase();
+  if(hasReason&&!s)return'skip';
+  if(/offer/.test(s))return'offer';
+  if(/interview|assessment|shortlist|test/.test(s))return'interview';
+  if(/reject|ditolak|declin|not selected|unsuccessful/.test(s))return'rejected';
+  if(/skip|dilewati|excluded/.test(s))return'skip';
+  if(/complete|draft|ready|siap|action/.test(s))return'ready';
+  if(/pending|waiting|menunggu|referral/.test(s))return'pending';
+  if(/fail|error|gagal/.test(s))return'error';
+  return'sent';
+}
+function parseDate(s){
+  s=(s||'').trim();if(!s)return null;let m;
+  const MON={jan:0,feb:1,mar:2,apr:3,may:4,mei:4,jun:5,jul:6,aug:7,agu:7,sep:8,oct:9,okt:9,nov:10,dec:11,des:11};
+  if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return new Date(+m[1],m[2]-1,+m[3]);
+  if(m=s.match(/^(\d{1,2})[-\s/]([A-Za-z]{3})[A-Za-z]*[-\s/,]+(\d{4})/))return MON[m[2].toLowerCase()]!=null?new Date(+m[3],MON[m[2].toLowerCase()],+m[1]):null;
+  if(m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))return new Date(+m[3],m[2]-1,+m[1]);
+  const d=new Date(s);return isNaN(d)?null:d;
+}
+function country(loc){
+  let s=(loc||'').replace(/\(.*?\)/g,'').trim();if(!s)return'—';
+  const parts=s.split(',').map(x=>x.trim()).filter(Boolean);
+  let c=parts[parts.length-1].split('/')[0].trim();
+  const k=c.toLowerCase();if(CITY[k])return CITY[k];if(ALIAS[k])return ALIAS[k];
+  if(k.startsWith('county '))return'Ireland';
+  return c.replace(/\b\w/g,x=>x.toUpperCase());
+}
+function city(loc){const s=(loc||'').replace(/\(.*?\)/g,'').split(',')[0].split('/')[0].trim();return s||'—'}
+function channel(c){c=(c||'').trim();if(!c)return'—';const l=c.toLowerCase();
+  if(l.includes('linkedin'))return'LinkedIn';if(/referral/.test(l))return'Referral';if(/email|e-mail/.test(l))return'Email';
+  if(/jobstreet|gulftalent|bayt|indeed|glassdoor/.test(l))return c.split(/[\s(]/)[0];
+  if(/recruit|agency|michael page|hays/.test(l))return'Recruiter';return'Situs perusahaan'}
+
+function fromTable(t){
+  if(t.length<2)throw new Error('File kosong atau hanya berisi header.');
+  const h=t[0].map(x=>x.trim().toLowerCase());
+  const col=(...ns)=>h.findIndex(x=>ns.some(n=>x===n||x.startsWith(n)));
+  const ci=col('company','perusahaan'),ri=col('role','position','posisi','title'),li=col('location','lokasi','city'),si=col('status'),chi=col('channel','source','sumber'),di=col('applied on','applied','date','tanggal','last update'),ki=col('link','url'),rsi=col('reason','alasan');
+  if(ci<0||ri<0)throw new Error('Kolom Company dan Role tidak ditemukan. Pastikan baris pertama adalah header tracker.');
+  return t.slice(1).filter(r=>(r[ci]||'').trim()).map(r=>{const g=i=>i<0?'':(r[i]||'').trim();
+    return{company:g(ci),role:g(ri),loc:g(li),raw:g(si)||(rsi>=0?'Skipped':''),status:status(g(si),rsi>=0),channel:g(chi),date:parseDate(g(di)),link:/^https:\/\//.test(g(ki))?g(ki):''}});
+}
+function exampleRows(){const t=new Date();return EXAMPLE.map(([c,r,l,s,ch,d])=>({company:c,role:r,loc:l,raw:s,status:status(s),channel:ch,date:new Date(t.getFullYear(),t.getMonth(),t.getDate()+d),link:''}))}
+
+function setData(list,src){rows=list;source=src;shown=50;render()}
+
+/* ---------- render ---------- */
+const fmtDay=d=>d?d.toLocaleDateString('id-ID',{day:'2-digit',month:'short'}).replace('.',''):'—';
+function count(list,key){const m=new Map();for(const r of list){const k=key(r);m.set(k,(m.get(k)||0)+1)}return[...m].sort((a,b)=>b[1]-a[1])}
+function hbars(el,pairs,cls){const max=Math.max(1,...pairs.map(p=>p[1]));
+  el.innerHTML=pairs.map(([k,n,c])=>`<div class="hb" data-tip="${esc(k)}: ${n} lamaran"><span class="l">${esc(k)}</span><span class="t"><span class="f ${c||cls||''}" style="width:${n/max*100}%;display:block"></span></span><span class="n">${n}</span></div>`).join('')||'<p class="note">Belum ada data.</p>'}
+function topN(pairs,n){if(pairs.length<=n)return pairs;const rest=pairs.slice(n-1).reduce((s,p)=>s+p[1],0);return[...pairs.slice(0,n-1),['Lainnya',rest]]}
+
+function render(){
+  const real=rows.filter(r=>r.status!=='skip');
+  const n=real.length,by=s=>real.filter(r=>r.status===s).length;
+  const act=by('ready')+by('error'),adv=by('interview')+by('offer'),rej=by('rejected'),wait=by('sent')+by('pending');
+  const answered=adv+rej;
+  // source line
+  const srcEl=$('src');
+  if(source.kind==='example')srcEl.innerHTML='<span class="tag">CONTOH</span><span>Data contoh. Muat CSV tracker-mu di bawah.</span>';
+  else srcEl.innerHTML=`<span class="tag live">${source.kind==='url'?'LINK':'FILE'}</span><span>${esc(source.name)} · ${rows.length} baris · dimuat ${new Date(source.at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}).replace('.',':')}</span>`;
+  $('refresh').hidden=source.kind!=='url';
+  // insight
+  const cs=count(real,r=>country(r.loc));
+  const top=cs[0];
+  let ins='';
+  if(!n)ins='Belum ada lamaran di data ini.';
+  else{
+    ins=`${n} lamaran${top?`, ${Math.round(top[1]/n*100)}% ke ${top[0]}`:''}.`;
+    if(answered)ins+=` ${answered} sudah dijawab: ${adv} lanjut ke tahap berikutnya, ${rej} ditolak.`;
+    else ins+=' Belum ada jawaban yang masuk.';
+    if(act)ins+=` ${act} menunggu aksimu.`;
+  }
+  $('insight').textContent=ins;
+  // kpis
+  const pct=(a,b)=>b?Math.round(a/b*100)+'%':'—';
+  $('kpis').innerHTML=[
+    ['Total lamaran',n,`${by('skip')||rows.filter(r=>r.status==='skip').length} dilewati`,''],
+    ['Perlu aksi',act,'submit, referral, draft email','act'],
+    ['Tahap lanjut',adv,`${pct(adv,n)} dari semua lamaran`,''],
+    ['Ditolak',rej,`${pct(rej,answered)} dari yang dijawab`,''],
+    ['Menunggu jawaban',wait,`${pct(wait,n)} belum ada kabar`,'']
+  ].map(([l,v,s,c])=>`<div class="kpi ${c}"><span class="eyebrow">${l}</span><b>${v}</b><small>${s}</small></div>`).join('');
+  // status chart
+  const sc=ORDER.map(s=>[LABEL[s],rows.filter(r=>r.status===s).length,s]).filter(p=>p[1]);
+  hbars($('c-status'),sc);
+  // countries & channels
+  hbars($('c-country'),topN(cs,8));
+  hbars($('c-channel'),topN(count(real,r=>channel(r.channel)),6));
+  // days
+  const dated=real.filter(r=>r.date);
+  const el=$('c-days'),ax=$('c-days-axis');
+  if(!dated.length){el.innerHTML='<p class="note">Tidak ada kolom tanggal.</p>';ax.innerHTML='';$('c-days-sub').textContent=''}
+  else{
+    const key=d=>d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
+    const last=new Date(Math.max(...dated.map(r=>+r.date)));const first=new Date(Math.min(...dated.map(r=>+r.date)));
+    let start=new Date(last.getFullYear(),last.getMonth(),last.getDate()-29);if(first>start)start=new Date(first.getFullYear(),first.getMonth(),first.getDate());
+    const days=[];for(let d=new Date(start);d<=last;d.setDate(d.getDate()+1))days.push(new Date(d));
+    const m=new Map();for(const r of dated)m.set(key(r.date),(m.get(key(r.date))||0)+1);
+    const vals=days.map(d=>m.get(key(d))||0),max=Math.max(1,...vals),tick=Math.max(1,Math.ceil(max/2));
+    el.innerHTML=`<div class="grid-line" style="bottom:${tick/max*100}%"><span>${tick}</span></div>`+days.map((d,i)=>`<div class="c" data-tip="${fmtDay(d)}: ${vals[i]} lamaran"><i style="height:${vals[i]/max*100}%"></i></div>`).join('');
+    ax.innerHTML=`<span>${fmtDay(days[0])}</span><span>${fmtDay(days[days.length-1])}</span>`;
+    $('c-days-sub').textContent=days.length>1?`${days.length} hari terakhir`:'';
+  }
+  renderTable();
+}
+const TABS=[['all','SEMUA',()=>true],['act','PERLU AKSI',s=>s==='ready'||s==='error'],['adv','TAHAP LANJUT',s=>s==='interview'||s==='offer'],['wait','MENUNGGU',s=>s==='sent'||s==='pending'],['out','DITOLAK/DILEWATI',s=>s==='rejected'||s==='skip']];
+function renderTable(){
+  const qq=query.toLowerCase();
+  const match=r=>!qq||(r.company+' '+r.role+' '+r.loc+' '+r.channel).toLowerCase().includes(qq);
+  $('tabs').innerHTML=TABS.map(([k,l,f])=>`<button type="button" data-k="${k}" aria-pressed="${k===tab}">${l}<b>${rows.filter(r=>f(r.status)&&match(r)).length}</b></button>`).join('');
+  const f=TABS.find(t=>t[0]===tab)[2];
+  const list=rows.filter(r=>f(r.status)&&match(r)).sort((a,b)=>ORDER.indexOf(a.status)-ORDER.indexOf(b.status)||(+b.date||0)-(+a.date||0));
+  $('rows').innerHTML=list.slice(0,shown).map(r=>{const role=`<div class="r">${esc(r.role)}</div><div class="co">${esc(r.company)}</div>`;
+    return`<tr><td>${fmtDay(r.date)}</td><td>${r.link?`<a href="${esc(r.link)}" target="_blank" rel="noopener">${role}</a>`:role}</td><td><span class="flap">${esc(city(r.loc).toUpperCase())}</span></td><td>${esc(channel(r.channel))}</td><td><span class="st ${r.status}" title="${esc(r.raw)}">${LABEL[r.status]}</span></td></tr>`}).join('')||`<tr><td colspan="5">Tidak ada lamaran yang cocok.</td></tr>`;
+  $('more-wrap').innerHTML=list.length>shown?`<button type="button" class="more" id="more">TAMPILKAN ${list.length-shown} LAGI</button>`:'';
+  const m=$('more');if(m)m.onclick=()=>{shown+=50;renderTable()};
+  $('bfoot').textContent=`${list.length} DARI ${rows.length} BARIS`;
+  $('bfoot-r').textContent=source.kind==='example'?'CONTOH':'';
+}
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b){tab=b.dataset.k;shown=50;renderTable()}});
+$('q').addEventListener('input',e=>{query=e.target.value.trim();shown=50;renderTable()});
+
+/* ---------- tooltip ---------- */
+const tip=$('tip');
+document.addEventListener('pointermove',e=>{const t=e.target.closest('[data-tip]');if(!t){tip.hidden=true;return}
+  tip.textContent=t.dataset.tip;tip.hidden=false;const w=tip.offsetWidth;tip.style.left=Math.min(e.clientX+12,innerWidth-w-8)+'px';tip.style.top=(e.clientY-34)+'px'});
+
+/* ---------- loading ---------- */
+$('csv-file').addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const rd=new FileReader();
+  rd.onload=()=>{try{const list=fromTable(parseCSV(String(rd.result)));S.set('csv',{name:file.name,text:String(rd.result),at:Date.now()});S.set('mode','file');setData(list,{kind:'file',name:file.name,at:Date.now()});$('file-msg').className='';$('file-msg').textContent=`${list.length} baris dimuat. Tersimpan di browser ini.`}
+    catch(err){$('file-msg').className='err';$('file-msg').textContent=err.message}};
+  rd.readAsText(file)});
+function validUrl(u){return/^https:\/\/docs\.google\.com\/spreadsheets\/.+(output=csv|format=csv)/.test(u)}
+async function loadUrl(u,quiet){
+  const msg=$('url-msg');
+  if(!validUrl(u)){msg.className='err';msg.textContent='Link harus link "Publish to web" berformat CSV (berisi output=csv).';return}
+  try{msg.className='';msg.textContent='Memuat…';
+    const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
+    const list=fromTable(parseCSV(await r.text()));S.set('url',u);S.set('mode','url');
+    setData(list,{kind:'url',name:'Google Sheet',at:Date.now()});msg.textContent=`${list.length} baris dimuat dari link.`}
+  catch(err){msg.className='err';msg.textContent=/HTTP|fetch/i.test(err.message)?'Link tidak bisa dibaca. Pastikan sheet sudah di-Publish to web sebagai CSV.':err.message;if(!quiet)return}
+}
+$('csv-go').addEventListener('click',()=>loadUrl($('csv-url').value.trim()));
+$('csv-url').addEventListener('keydown',e=>{if(e.key==='Enter')loadUrl(e.target.value.trim())});
+$('refresh').addEventListener('click',()=>loadUrl(S.get('url','')));
+function setBoard(v){const ok=/^https:\/\/claude\.ai\/(code\/)?artifact\/[A-Za-z0-9_-]+\/?$/.test(v),a=$('open-board');
+  if(ok){a.href=v;a.setAttribute('aria-disabled','false')}else{a.removeAttribute('href');a.setAttribute('aria-disabled','true')}
+  const m=$('board-msg');m.className=v&&!ok?'err':'';m.textContent=v&&!ok?'Link harus berbentuk https://claude.ai/artifact/...':'Hanya kamu yang bisa membuka papan itu.';return ok}
+$('board-url').addEventListener('input',e=>{const v=e.target.value.trim();if(setBoard(v)||!v)S.set('board',v)});
+
+/* ---------- start ---------- */
+$('board-url').value=S.get('board','');setBoard($('board-url').value);
+$('csv-url').value=S.get('url','');
+const mode=S.get('mode',''),saved=S.get('csv',null);
+let started=false;
+if(mode==='file'&&saved){try{setData(fromTable(parseCSV(saved.text)),{kind:'file',name:saved.name,at:saved.at});started=true}catch(e){}}
+if(!started)setData(exampleRows(),{kind:'example'});
+if(mode==='url'&&S.get('url',''))loadUrl(S.get('url',''),true);
+</script>
+</body>
+</html>
