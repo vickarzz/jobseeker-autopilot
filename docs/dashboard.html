@@ -166,7 +166,7 @@ td a{text-decoration:none}td a:hover .r{text-decoration:underline}
     </div>
     <div>
       <h2>Link CSV Google Sheet</h2>
-      <p>File → Share → Publish to web → pilih tab Applications, format CSV. Dashboard ikut update tiap dibuka.</p>
+      <p>File → Share → Publish to web → pilih tab Applications, format CSV. Dashboard mengambil data baru setiap jam dan tiap kali dibuka.</p>
       <div class="row"><input type="text" id="csv-url" spellcheck="false" autocomplete="off" placeholder="https://docs.google.com/.../pub?output=csv" aria-label="Link CSV"><button class="btn btn-quiet" id="csv-go" type="button">Muat</button></div>
       <small id="url-msg">Siapa pun yang punya link ini bisa membaca tab yang dipublikasikan.</small>
     </div>
@@ -300,7 +300,7 @@ function render(){
   // source line
   const srcEl=$('src');
   if(source.kind==='example')srcEl.innerHTML='<span class="tag">CONTOH</span><span>Data contoh. Muat CSV tracker-mu di bawah.</span>';
-  else srcEl.innerHTML=`<span class="tag live">${source.kind==='url'?'LINK':'FILE'}</span><span>${esc(source.name)} · ${rows.length} baris · dimuat ${new Date(source.at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}).replace('.',':')}</span>`;
+  else srcEl.innerHTML=`<span class="tag live">${source.kind==='url'?'LINK':'FILE'}</span><span>${esc(source.name)} · ${rows.length} baris · dimuat ${new Date(source.at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}).replace('.',':')}${source.kind==='url'?' · sinkron lagi '+new Date(source.at+3600e3).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}).replace('.',':'):''}</span>`;
   $('refresh').hidden=source.kind!=='url';
   // insight
   const cs=count(real,r=>country(r.loc));
@@ -399,6 +399,9 @@ let started=false;
 if(mode==='file'&&saved){try{setData(fromTable(parseCSV(saved.text)),{kind:'file',name:saved.name,at:saved.at});started=true}catch(e){}}
 if(!started)setData(exampleRows(),{kind:'example'});
 if(mode==='url'&&S.get('url',''))loadUrl(S.get('url',''),true);
+const HOUR=3600e3;
+setInterval(()=>{if(source&&source.kind==='url'&&Date.now()-source.at>=HOUR-60e3)loadUrl(S.get('url',''),true)},60e3);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&source&&source.kind==='url'&&Date.now()-source.at>=HOUR)loadUrl(S.get('url',''),true)});
 </script>
 </body>
 </html>
