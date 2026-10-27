@@ -628,7 +628,7 @@ function hbRender(text){
   $('board-mode').textContent='DATAMU';
 }
 async function hbLoad(){
-  let mode,url,saved;try{mode=JSON.parse(localStorage.getItem('ja2.dash.mode')||'""');url=JSON.parse(localStorage.getItem('ja2.dash.url')||'""');saved=JSON.parse(localStorage.getItem('ja2.dash.csv')||'null')}catch(e){return}
+  let mode,url,saved;try{if(!localStorage.getItem('ja2.dash.mode')){localStorage.setItem('ja2.dash.url',JSON.stringify('https://docs.google.com/spreadsheets/d/1HN4BMQeMd4gkS9W1D4jw9WyfPPYzVQiK_PnkPlCpspA/gviz/tq?tqx=out:csv&sheet=Applications'));localStorage.setItem('ja2.dash.mode',JSON.stringify('url'))}mode=JSON.parse(localStorage.getItem('ja2.dash.mode')||'""');url=JSON.parse(localStorage.getItem('ja2.dash.url')||'""');saved=JSON.parse(localStorage.getItem('ja2.dash.csv')||'null')}catch(e){return}
   try{if(mode==='url'&&url){const r=await fetch(url,{cache:'no-store'});if(r.ok)hbRender(await r.text())}else if(mode==='file'&&saved)hbRender(saved.text)}catch(e){}
 }
 hbLoad();setInterval(hbLoad,3600e3);
