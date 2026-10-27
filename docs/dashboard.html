@@ -152,12 +152,13 @@ td a{text-decoration:none}td a:hover .r{text-decoration:underline}
       <div class="src" id="src"></div>
     </div>
     <div class="actions">
+      <button class="btn btn-quiet" id="toggle-src" type="button" hidden>Ganti sumber data</button>
       <button class="btn btn-quiet" id="refresh" type="button" hidden>Muat ulang data</button>
       <a class="btn btn-primary" id="open-board" target="_blank" rel="noopener" aria-disabled="true">Buka papan live</a>
     </div>
   </div>
 
-  <section class="load" aria-label="Sumber data">
+  <section class="load" id="load" aria-label="Sumber data">
     <div>
       <h2>File CSV tracker</h2>
       <p>Di Google Sheets: tab Applications → File → Download → CSV, lalu pilih filenya di sini.</p>
@@ -227,7 +228,7 @@ const EXAMPLE=[
 ['Contoh Gaming','Data Warehouse Developer','Estonia','Submitted','Company site',-1],
 ['Contoh Travel','Senior Analyst','Bangkok, Thailand','Submitted','Company site',0]];
 
-let rows=[],source=null,tab='all',query='',shown=50;
+let srcOpen=false,rows=[],source=null,tab='all',query='',shown=50;
 
 function parseCSV(t){
   const out=[];let row=[],f='',q=false;
@@ -302,6 +303,10 @@ function render(){
   if(source.kind==='example')srcEl.innerHTML='<span class="tag">CONTOH</span><span>Data contoh. Muat CSV tracker-mu di bawah.</span>';
   else srcEl.innerHTML=`<span class="tag live">${source.kind==='url'?'LINK':'FILE'}</span><span>${esc(source.name)} · ${rows.length} baris · dimuat ${new Date(source.at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}).replace('.',':')}${source.kind==='url'?' · sinkron lagi '+new Date(source.at+3600e3).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}).replace('.',':'):''}</span>`;
   $('refresh').hidden=source.kind!=='url';
+  const auto=source.kind==='url'&&rows.length>0;
+  $('toggle-src').hidden=!auto;
+  if(auto&&!srcOpen)$('load').hidden=true;
+  if(!auto)$('load').hidden=false;
   // insight
   const cs=count(real,r=>country(r.loc));
   const top=cs[0];
@@ -385,6 +390,7 @@ async function loadUrl(u,quiet){
 }
 $('csv-go').addEventListener('click',()=>loadUrl($('csv-url').value.trim()));
 $('csv-url').addEventListener('keydown',e=>{if(e.key==='Enter')loadUrl(e.target.value.trim())});
+$('toggle-src').addEventListener('click',()=>{srcOpen=!srcOpen;$('load').hidden=!srcOpen;$('toggle-src').textContent=srcOpen?'Tutup sumber data':'Ganti sumber data'});
 $('refresh').addEventListener('click',()=>loadUrl(S.get('url','')));
 function setBoard(v){const ok=/^https:\/\/claude\.ai\/(code\/)?artifact\/[A-Za-z0-9_-]+\/?$/.test(v),a=$('open-board');
   if(ok){a.href=v;a.setAttribute('aria-disabled','false')}else{a.removeAttribute('href');a.setAttribute('aria-disabled','true')}
@@ -396,6 +402,8 @@ $('board-url').value=S.get('board','');setBoard($('board-url').value);
 
 const OWNER_CSV='https://docs.google.com/spreadsheets/d/1HN4BMQeMd4gkS9W1D4jw9WyfPPYzVQiK_PnkPlCpspA/gviz/tq?tqx=out:csv&sheet=Applications';
 if(!S.get('mode','')&&!new URLSearchParams(location.search).has('demo')){S.set('url',OWNER_CSV);S.set('mode','url')}
+if(!S.get('board','')&&S.get('url','')===OWNER_CSV)S.set('board','https://claude.ai/artifact/B98rtDBnhUPaTBhqrkdg89');
+$('board-url').value=S.get('board','');setBoard($('board-url').value);
 $('csv-url').value=S.get('url','');
 const mode=S.get('mode',''),saved=S.get('csv',null);
 let started=false;
