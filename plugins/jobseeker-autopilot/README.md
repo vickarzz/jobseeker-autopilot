@@ -14,6 +14,14 @@ Finds jobs that match your CV, checks the fit, fills applications in your own Ch
 2. Upload your CV and say "build my profile".
 3. Paste the settings block from the Jobseeker Autopilot web page, or tell Claude your countries, salary floor, visa needs and languages.
 
+## Autopilot
+
+On the setup page, upload your CV, set your filters and keep "Jalankan otomatis setiap hari" on, then press
+Mulai Autopilot and paste into Claude. Every day at the chosen time (default 10:00 local) Claude checks your
+inbox for replies, finds new matching jobs, and fills their forms in Chrome up to the Submit button. The run
+summary arrives by email: open Chrome, check each tab, tick the consents and press Submit.
+The Claude desktop app and Chrome must be open at that time. Say "run autopilot now" to run it any time.
+
 ## Daily use
 
 | Say | What happens |

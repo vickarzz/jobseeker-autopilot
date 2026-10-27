@@ -8,7 +8,7 @@
 
 | Status | Signals |
 |---|---|
-| Submitted | "we received your application", "thank you for applying" |
+| Submitted | "we received your application", "thank you for applying" (also confirms a `Ready to submit` row) |
 | In Review | "under review", "shortlisted", "being considered" |
 | Assessment | "assessment", "test", "case study", "HackerRank", "Codility" |
 | Interview | "interview", "schedule a call", "availability", calendar invite |

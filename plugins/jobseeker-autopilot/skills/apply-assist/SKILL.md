@@ -20,7 +20,7 @@ and keep `run/now` on the job in hand ("Mengisi form Wise · 2 dari 5").
 
 ## Per job
 
-1. Confirm the job is approved by the user in this conversation and passes fit-check.
+1. Confirm the job is approved by the user in this conversation (or queued by an autopilot run) and passes fit-check.
 2. Open the posting in a tab inside the session's tab group. Note the apply route: LinkedIn Easy Apply, or the company ATS.
 3. Pick the CV: `cv_default`, or the variant whose note matches the role. Check the size limit on the form (many cap at 2 MB) and pick a lighter variant if needed.
 4. Fill only from Profile. Field patterns per ATS: `references/ats-forms.md`.

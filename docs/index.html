@@ -186,7 +186,7 @@ button{font:inherit;color:inherit}
 .field{display:flex;flex-direction:column;gap:7px;min-width:0}
 .field>.lb{font-weight:600;font-size:14px}
 .field>.lb small{font-weight:400;color:var(--muted);margin-left:6px}
-input[type=text],input[type=number],select,textarea{font:15px var(--f-body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;width:100%;min-width:0}
+input[type=text],input[type=number],input[type=time],select,textarea{font:15px var(--f-body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;width:100%;min-width:0}
 input:focus,select:focus,textarea:focus{border-color:var(--ink-2);outline:none;box-shadow:0 0 0 3px var(--signal-soft)}
 textarea{min-height:120px;resize:vertical}
 .tokens{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:6px;background:var(--panel);min-height:44px}
@@ -257,6 +257,7 @@ pre{font:13px/1.65 var(--f-mono);background:var(--board);color:var(--board-ink);
 .nx .t{font:700 12px var(--f-mono);color:var(--signal)}
 .nx code{font:500 14px var(--f-mono)}
 .nx small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.daily .nx{grid-template-columns:52px minmax(0,1fr)}
 
 /* how + faq */
 .doc{padding-block:48px 72px;display:flex;flex-direction:column;gap:28px}
@@ -503,17 +504,24 @@ footer.site{border-top:1px solid var(--line);padding-block:20px 28px;font-size:1
               <div class="field"><div class="tokens" id="tk-exclude"></div></div>
               <div class="field"><span class="lb">Aturan khusus <small>opsional</small></span><input type="text" id="f-rules" placeholder="mis. UAE: lewati yang minta kandidat sudah di UAE"></div>
             </div></div>
+          <div class="fgroup"><div class="ft"><h3>Jadwal autopilot</h3><p>Setiap hari Claude mencari lowongan dan mengisi form sampai tombol Submit. Kamu yang menekan Submit.</p></div>
+            <div class="fc">
+              <label class="switch"><input type="checkbox" id="f-auto"><span>Jalankan otomatis setiap hari</span></label>
+              <div class="field"><span class="lb">Jam mulai <small id="tz-note"></small></span><input type="time" id="f-time" step="900" style="max-width:160px"></div>
+              <label class="switch"><input type="checkbox" id="f-li"><span>Ikutkan LinkedIn Easy Apply <small style="color:var(--muted)">lebih banyak lowongan, tapi akunmu yang menanggung risikonya</small></span></label>
+            </div></div>
         </div>
         <div class="stage-foot"><span class="hint" id="hint-filters"></span><a class="btn btn-quiet" href="#cv">Kembali</a><a class="btn btn-primary" href="#launch" data-next="filters">Lihat flight plan</a></div>
       </div>
 
       <!-- 5 launch -->
       <div class="step" data-step="launch">
-        <div class="stage-head"><span class="eyebrow">Langkah 5 dari 5</span><h2>Flight plan siap</h2><p>Salin rencana ini ke Claude. Claude akan mengecek koneksi, membuat tracker, dan menyimpan filtermu.</p></div>
+        <div class="stage-head"><span class="eyebrow">Langkah 5 dari 5</span><h2 id="launch-h">Flight plan siap</h2><p>Klik Mulai Autopilot, buka Claude desktop app, tempel, lalu kirim. Claude mengecek koneksi, membuat tracker dan profil dari CV-mu, lalu memasang jadwal harian. Claude akan minta file CV sekali supaya bisa dilampirkan di form.</p></div>
         <div class="stage-body">
           <div class="pass" id="pass"></div>
           <div class="codebox"><pre id="settings"></pre><button class="btn btn-sm" id="copy-settings" type="button">Salin</button></div>
-          <div class="field"><span class="lb">Setelah itu, perintah yang bisa kamu pakai</span><div class="next" id="next"></div></div>
+          <div class="field"><span class="lb">Yang terjadi setiap hari</span><div class="next daily" id="daily"></div></div>
+          <div class="field"><span class="lb">Perintah yang bisa kamu pakai kapan saja</span><div class="next" id="next"></div></div>
         </div>
         <div class="stage-foot"><span class="hint">Pengaturan tersimpan di browser ini. Ubah kapan saja lewat langkah sebelumnya.</span><a class="btn btn-quiet" href="#filters">Ubah filter</a><button class="btn btn-primary" id="copy-launch" type="button">Salin perintah pertama</button></div>
       </div>
@@ -572,7 +580,7 @@ footer.site{border-top:1px solid var(--line);padding-block:20px 28px;font-size:1
   </div>
 </div>
 
-<footer class="site gutter"><div class="wrap" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;width:100%"><span>Jobseeker Autopilot v0.2 · plugin untuk aplikasi Claude</span><span>Pengaturan tersimpan di browser ini saja</span></div></footer>
+<footer class="site gutter"><div class="wrap" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;width:100%"><span>Jobseeker Autopilot v0.4 · plugin untuk aplikasi Claude</span><span>Pengaturan tersimpan di browser ini saja</span></div></footer>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -666,7 +674,7 @@ function renderResult(){
 function showScan(on,msg){$('scan').classList.toggle('on',on);if(msg)$('scan-msg').textContent=msg}
 function useText(text,src){
   if(text.trim().length<80){showScan(false);toast('Teks terlalu pendek. Coba tempel isi CV.');return}
-  profile=parseCV(text);S.set('profile',profile);showScan(false);renderResult();syncSuggest(true);toast('CV terbaca dari '+src);
+  profile=parseCV(text);profile.cvText=text.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim().slice(0,9000);S.set('profile',profile);showScan(false);renderResult();syncSuggest(true);toast('CV terbaca dari '+src);
 }
 async function readFile(f){
   showScan(true,'Membaca '+f.name+'…');
@@ -687,7 +695,7 @@ $('cv-read').addEventListener('click',()=>useText($('cv-text').value,'teks yang 
 /* ---------- step 4 filters ---------- */
 const REGIONS=[['Eropa',[['DE','Germany'],['NL','Netherlands'],['LT','Lithuania'],['EE','Estonia'],['PL','Poland'],['IE','Ireland'],['PT','Portugal'],['ES','Spain'],['SE','Sweden']]],['Timur Tengah',[['SA','Saudi Arabia'],['AE','UAE'],['QA','Qatar']]],['Asia',[['SG','Singapore'],['MY','Malaysia'],['JP','Japan'],['ID','Indonesia']]]];
 const PRESETS={EUR:[3500,'Eropa umum'],SAR:[25000,'Saudi'],AED:[24500,'UAE'],QAR:[24300,'Qatar'],SGD:[9000,'Singapore'],USD:[5000,'remote USD'],IDR:[25000000,'Indonesia'],GBP:[3500,'UK'],JPY:[500000,'Jepang']};
-const F=Object.assign({countries:['Germany','Netherlands','Lithuania','Estonia'],roles:[],levels:['Senior','Lead','Manager'],salary:3500,currency:'EUR',visa:true,remote:true,langs:['English','Indonesian'],match:80,max:15,exclude:[],rules:'',rolesEdited:false},S.get('filters',{}));
+const F=Object.assign({countries:['Germany','Netherlands','Lithuania','Estonia'],roles:[],levels:['Senior','Lead','Manager'],salary:3500,currency:'EUR',visa:true,remote:true,langs:['English','Indonesian'],match:80,max:15,exclude:[],rules:'',rolesEdited:false,auto:true,time:'10:00',linkedin:false},S.get('filters',{}));
 function saveF(){S.set('filters',F);updateFilterHint()}
 function suggestRoles(p){const s=new Set(p.skills.map(x=>x.toLowerCase()));const o=[];if(s.has('power bi')||s.has('tableau'))o.push('BI Developer','Senior Data Analyst');if(s.has('dbt')||s.has('databricks')||s.has('snowflake'))o.push('Analytics Engineer');if(s.has('python')&&(s.has('machine learning')||s.has('nlp')))o.push('Data Scientist');if((p.years||0)>=8)o.push('BI Manager');return [...new Set(o)].length?[...new Set(o)]:['Data Analyst']}
 let drawRoles;
@@ -706,15 +714,24 @@ $('f-remote').checked=F.remote;$('f-remote').addEventListener('change',e=>{F.rem
 $('f-match').value=F.match;$('o-match').textContent=F.match+'%';$('f-match').addEventListener('input',e=>{F.match=+e.target.value;$('o-match').textContent=F.match+'%';saveF()});
 $('f-max').value=F.max;$('o-max').textContent=F.max;$('f-max').addEventListener('input',e=>{F.max=+e.target.value;$('o-max').textContent=F.max;saveF()});
 $('f-rules').value=F.rules;$('f-rules').addEventListener('input',e=>{F.rules=e.target.value;saveF()});
+const TZ=(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'}catch(e){return'UTC'}})();
+$('tz-note').textContent='waktu lokal · '+TZ;
+$('f-auto').checked=F.auto;$('f-auto').addEventListener('change',e=>{F.auto=e.target.checked;$('f-time').disabled=!F.auto;saveF()});
+$('f-time').value=F.time;$('f-time').disabled=!F.auto;$('f-time').addEventListener('input',e=>{if(e.target.value){F.time=e.target.value;saveF()}});
+$('f-li').checked=F.linkedin;$('f-li').addEventListener('change',e=>{F.linkedin=e.target.checked;saveF()});
 function updateFilterHint(){$('hint-filters').textContent=`${F.countries.length} negara · ${F.roles.length} role · min. ${F.currency} ${Number(F.salary).toLocaleString('id-ID')}`}
 
 /* ---------- step 5 launch ---------- */
 function regionKey(c){return {EUR:'eu',GBP:'uk',USD:'usd',SGD:'sg',SAR:'middle_east',AED:'middle_east',QAR:'middle_east',IDR:'id',JPY:'jp'}[c]||'default'}
-function settingsText(){
+function settingsText(full){
   const p=profile,f=F;
-  const L=['JOB-AUTOPILOT-SETTINGS v1',`target_roles: ${f.roles.join(', ')}`,`keywords: ${p.skills.slice(0,6).join(', ').toLowerCase()}`,`countries: ${f.countries.join(', ')}`,`remote_ok: ${f.remote?'yes':'no'}`,`needs_sponsorship: ${f.visa?'yes':'no'}`,`languages_spoken: ${f.langs.join(', ')}`,`salary_floor_${regionKey(f.currency)}: ${f.currency} ${Number(f.salary).toLocaleString('en-US')}/month`,`min_match: ${f.match}`,`seniority: ${f.levels.join(', ').toLowerCase()}`,`exclude_companies: ${f.exclude.join(', ')||'-'}`,`max_applications_per_day: ${f.max}`];
+  const L=['JOB-AUTOPILOT-SETTINGS v2',`target_roles: ${f.roles.join(', ')}`,`keywords: ${p.skills.slice(0,6).join(', ').toLowerCase()}`,`countries: ${f.countries.join(', ')}`,`remote_ok: ${f.remote?'yes':'no'}`,`needs_sponsorship: ${f.visa?'yes':'no'}`,`languages_spoken: ${f.langs.join(', ')}`,`salary_floor_${regionKey(f.currency)}: ${f.currency} ${Number(f.salary).toLocaleString('en-US')}/month`,`min_match: ${f.match}`,`seniority: ${f.levels.join(', ').toLowerCase()}`,`exclude_companies: ${f.exclude.join(', ')||'-'}`,`max_applications_per_day: ${f.max}`];
   if(f.rules)L.push(`region_rules: ${f.rules}`);
   if(!p.example)L.push(`profile_hint.years_total: ${p.years} (verify against CV)`,`profile_hint.skills: ${p.skills.join(', ')}`);
+  L.push(`autopilot: ${f.auto?'on':'off'}`);
+  if(f.auto)L.push(`run_time: ${f.time}`,`timezone: ${TZ}`);
+  L.push(`use_linkedin: ${f.linkedin?'yes':'no'}`,'language: id');
+  if(!p.example&&p.cvText)L.push('CV-TEXT',full?p.cvText:`(isi CV, ${p.cvText.length.toLocaleString('id-ID')} karakter, ikut tersalin)`,'END-CV');
   L.push('END');return L.join('\n');
 }
 function renderLaunch(){
@@ -725,14 +742,22 @@ function renderLaunch(){
     <div class="pf"><div><span class="eyebrow">Role</span><b>${esc(f.roles.slice(0,2).join(', ')||'—')}${f.roles.length>2?' +'+(f.roles.length-2):''}</b></div><div><span class="eyebrow">Gaji minimum</span><b>${f.currency} ${Number(f.salary).toLocaleString('id-ID')}</b></div><div><span class="eyebrow">Visa</span><b>${f.visa?'Perlu sponsor':'Tidak perlu'}</b></div>
     <div><span class="eyebrow">Skor minimum</span><b>${f.match}%</b></div><div><span class="eyebrow">Per hari</span><b>${f.max} lamaran</b></div><div><span class="eyebrow">Bahasa</span><b>${esc(f.langs.join(', '))}</b></div></div></div>
     <div class="pass-stub"><span class="eyebrow">Pengalaman</span><b style="font:800 30px var(--f-display)">${p.years||'—'} th</b><span class="eyebrow">Skill</span><b>${p.skills.length} terdeteksi</b><div class="barcode" aria-hidden="true"></div></div>`;
-  $('settings').textContent=settingsText();
+  $('settings').textContent=settingsText(false);
+  $('daily').innerHTML=dailyRows();
+  $('launch-h').textContent=F.auto?'Siap terbang setiap hari':'Flight plan siap';
+  $('copy-launch').textContent=F.auto?'Mulai Autopilot':'Salin perintah pertama';
 }
-const NEXT=[['Find jobs','Shortlist berperingkat dengan skor dan alasan.'],['Apply to 1 and 3','Form diisi di Chrome; kamu centang consent dan Submit.'],['Draft an email for this job','Untuk lowongan via email, masuk ke Draft Gmail.'],['Check my application emails','Status tracker diperbarui dari inbox.']];
-$('next').innerHTML=NEXT.map(([c,d],i)=>`<div class="nx"><span class="t">${String(i+2).padStart(2,'0')}</span><span><code>${c}</code><small>${d}</small></span><button type="button" class="btn btn-quiet btn-sm" data-c="${esc(c)}">Salin</button></div>`).join('');
+const NEXT=[['Run autopilot now','Jalankan sekarang tanpa menunggu jadwal.'],['Find jobs','Shortlist berperingkat dengan skor dan alasan.'],['Apply to 1 and 3','Form diisi di Chrome; kamu centang consent dan Submit.'],['Draft an email for this job','Untuk lowongan via email, masuk ke Draft Gmail.'],['Check my application emails','Status tracker diperbarui dari inbox.']];
+function dailyRows(){
+  if(!F.auto)return`<div class="nx"><span class="t">—</span><span><code>Autopilot mati</code><small>Nyalakan di langkah Filter, atau pakai perintah di bawah secara manual.</small></span></div>`;
+  const D=[[F.time,'Cek email','Balasan rekruter dicocokkan ke tracker: interview, assessment, ditolak.'],['','Cari lowongan','Sesuai filtermu. Yang tidak lolos dicatat beserta alasannya.'],['','Isi form','Lowongan yang cocok dibuka di Chrome dan diisi sampai tombol Submit.'],['','Email ringkasan','Daftar yang siap kamu Submit, plus status lamaran sebelumnya.']];
+  return D.map(([t,a,b])=>`<div class="nx"><span class="t">${esc(t)}</span><span><code>${a}</code><small>${b}</small></span></div>`).join('')+`<div class="nx"><span class="t">Kamu</span><span><code>Klik Submit</code><small>Buka Chrome, cek tiap tab, centang consent, tekan Submit. Claude desktop app dan Chrome harus menyala saat jadwal jalan.</small></span></div>`;
+}
+$('next').innerHTML=NEXT.map(([c,d],i)=>`<div class="nx"><span class="t">${String(i+1).padStart(2,'0')}</span><span><code>${c}</code><small>${d}</small></span><button type="button" class="btn btn-quiet btn-sm" data-c="${esc(c)}">Salin</button></div>`).join('');
 async function copy(text,label){try{await navigator.clipboard.writeText(text);toast(label||'Tersalin')}catch(e){const r=document.createRange();r.selectNodeContents($('settings'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Teks dipilih, tekan Ctrl/Cmd+C')}}
 $('next').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b)copy(b.dataset.c,'Perintah disalin')});
-$('copy-settings').addEventListener('click',()=>copy(settingsText(),'Flight plan disalin'));
-$('copy-launch').addEventListener('click',()=>copy('Set up jobseeker autopilot\n\n'+settingsText(),'Siap ditempel ke Claude'));
+$('copy-settings').addEventListener('click',()=>copy(settingsText(true),'Flight plan disalin'));
+$('copy-launch').addEventListener('click',()=>copy((F.auto?'Start jobseeker autopilot':'Set up jobseeker autopilot')+'\n\n'+settingsText(true),'Disalin. Tempel ke Claude lalu kirim'));
 
 /* ---------- shared ---------- */
 function stepDone(k){if(k==='install')return INSTALL.every(x=>st.install[x[0]]);if(k==='connect')return CONN.every(x=>st.connect[x[0]]);if(k==='cv')return !profile.example;if(k==='filters')return F.countries.length>0&&F.roles.length>0;return false}

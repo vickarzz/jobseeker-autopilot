@@ -17,6 +17,11 @@
 | max_applications_per_day | 15 | pacing |
 | company_boards | ashby:surfshark, greenhouse:example | saved ATS boards |
 | region_rules | free text | e.g. "UAE/Qatar: skip postings preferring in-country candidates" |
+| autopilot | on | daily unattended run fills forms up to Submit |
+| run_time | 10:00 | daily run time, local |
+| timezone | Asia/Riyadh | IANA zone for run_time |
+| use_linkedin | no | include LinkedIn in unattended runs |
+| language | id | language of the daily summary email |
 
 # Country visa notes (check current rules with a quick web search when it matters)
 
