@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Plugin Claude untuk mencari lowongan yang cocok dengan CV, mengisi form lamaran, dan mencatat balasan rekruter.">
+<style>html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Jobseeker Autopilot</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<style>
+/* Concept: a flight plan for a job search. Departure-board home, a five-leg pre-flight wizard, and a boarding-pass summary to hand to Claude. */
+:root{
+  --ground:#eef0ec; --panel:#ffffff; --panel-2:#f6f7f4; --ink:#121a24; --ink-2:#3a4552; --muted:#6a7581; --line:#d8dcd5;
+  --signal:#f0531c; --signal-ink:#ffffff; --signal-soft:#fde6dc; --go:#14824f; --go-soft:#dcf1e6; --hold:#a86a00; --hold-soft:#fbefd6;
+  --board:#121a24; --board-ink:#f3f1e8; --board-dim:#8a96a3; --board-line:#26313d;
+  --f-display:"Bricolage Grotesque","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:3px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#0d1218; --panel:#151c24; --panel-2:#1a222b; --ink:#eef1ee; --ink-2:#c5ccd3; --muted:#8f9aa5; --line:#2a343f;
+  --signal:#ff7240; --signal-ink:#1a0b05; --signal-soft:#3a2016; --go:#4fcf8f; --go-soft:#173226; --hold:#f0b54a; --hold-soft:#33291a;
+  --board:#070a0e; --board-ink:#f3f1e8; --board-dim:#7d8995; --board-line:#1d2630; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#0d1218; --panel:#151c24; --panel-2:#1a222b; --ink:#eef1ee; --ink-2:#c5ccd3; --muted:#8f9aa5; --line:#2a343f;
+  --signal:#ff7240; --signal-ink:#1a0b05; --signal-soft:#3a2016; --go:#4fcf8f; --go-soft:#173226; --hold:#f0b54a; --hold-soft:#33291a;
+  --board:#070a0e; --board-ink:#f3f1e8; --board-dim:#7d8995; --board-line:#1d2630; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--ground);color:var(--ink);font:15px/1.55 var(--f-body);padding-block:0 0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--panel)}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1120px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.015em}
+p{margin:0}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.mono{font-family:var(--f-mono)}
+.eyebrow{font:500 11.5px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* top bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--panel);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:20px;height:60px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font:800 18px var(--f-display);letter-spacing:-.02em}
+.logo svg{width:26px;height:26px}
+.toplinks{display:flex;gap:4px;margin-left:auto}
+.toplinks a{text-decoration:none;padding:8px 12px;border-radius:var(--r);color:var(--ink-2);font-weight:500;font-size:14px}
+.toplinks a:hover{background:var(--panel-2)}
+.toplinks a[aria-current="page"]{color:var(--ink);box-shadow:inset 0 -2px 0 var(--signal)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:var(--r);padding:11px 18px;font-weight:600;font-size:14.5px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn-primary{background:var(--signal);color:var(--signal-ink)}
+.btn-primary:hover{filter:brightness(1.05)}
+.btn-primary[disabled]{opacity:.45;cursor:not-allowed}
+.btn-quiet{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn-quiet:hover{border-color:var(--ink-2)}
+.btn-sm{padding:7px 12px;font-size:13px}
+
+.page{display:none}
+.page.on{display:block}
+
+/* home */
+.hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:48px;align-items:center;padding-block:56px 40px}
+.hero h1{font-size:clamp(38px,6.2vw,68px);font-weight:800;line-height:.98}
+.hero h1 em{font-style:normal;color:var(--signal)}
+.hero .sub{font-size:17px;color:var(--ink-2);max-width:44ch;margin-top:18px}
+.hero .ctas{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+.hero .fine{margin-top:16px;font-size:13px;color:var(--muted)}
+.board{background:var(--board);color:var(--board-ink);border-radius:6px;padding:18px 18px 12px;font-family:var(--f-mono);box-shadow:0 18px 40px -24px rgba(0,0,0,.6);min-width:0}
+.board-head{display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--board-line);font-size:11px;letter-spacing:.14em;color:var(--board-dim)}
+.board-head b{color:var(--board-ink);font-size:13px;letter-spacing:.18em}
+.board-scroll{overflow-x:auto}
+.board table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:460px}
+.board th{text-align:left;font-weight:500;color:var(--board-dim);font-size:10.5px;letter-spacing:.12em;padding:10px 6px 6px}
+.board td{padding:8px 6px;border-top:1px solid var(--board-line);white-space:nowrap;font-variant-numeric:tabular-nums}
+.flap{display:inline-block;background:#1f2a36;padding:2px 5px;border-radius:2px;letter-spacing:.04em}
+.st{font-weight:700;letter-spacing:.08em;font-size:11px}
+.st.filling{color:#ffb547}.st.ready{color:#f0531c}.st.sent{color:#5fd39a}.st.interview{color:#7cc4ff}.st.skip{color:#8a96a3}
+.board-foot{display:flex;justify-content:space-between;font-size:10.5px;color:var(--board-dim);padding-top:10px;letter-spacing:.08em}
+.blink{animation:blink 1.4s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-block:24px 64px}
+.strip>div{padding:22px 20px 22px 0;display:flex;flex-direction:column;gap:6px}
+.strip>div+div{padding-left:20px;border-left:1px solid var(--line)}
+.strip .k{font:700 13px var(--f-mono);color:var(--signal)}
+.strip h3{font-size:18px;font-weight:700}
+.strip p{font-size:14px;color:var(--muted)}
+.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:72px}
+.duo>div{padding:28px;display:flex;flex-direction:column;gap:14px}
+.duo>div+div{border-left:1px solid var(--line);background:var(--panel-2)}
+.duo h3{font-size:22px}
+.duo ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.duo li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;font-size:15px}
+.duo li svg{width:18px;height:18px;margin-top:3px}
+
+/* wizard */
+.wiz{display:grid;grid-template-columns:250px minmax(0,1fr);gap:40px;padding-block:36px 64px}
+.legs{position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px);align-self:start;display:flex;flex-direction:column}
+.legs .route{font:500 11px var(--f-mono);letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+.leg{display:grid;grid-template-columns:30px minmax(0,1fr);gap:12px;text-decoration:none;padding-bottom:22px;position:relative}
+.leg::before{content:"";position:absolute;left:14px;top:30px;bottom:2px;width:2px;background:var(--line)}
+.leg:last-child::before{display:none}
+.leg .dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font:700 12px var(--f-mono);background:var(--ground);position:relative;z-index:1}
+.leg .lbl{font-weight:600;font-size:14.5px;padding-top:4px}
+.leg .lbl small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+.leg.done .dot{background:var(--go);border-color:var(--go);color:#fff}
+.leg.done::before{background:var(--go)}
+.leg.cur .dot{border-color:var(--signal);color:var(--signal);box-shadow:0 0 0 4px var(--signal-soft)}
+.leg.cur .lbl{color:var(--ink)}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:6px;min-width:0;display:flex;flex-direction:column}
+.stage-head{padding:28px 32px 20px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.stage-head h2{font-size:clamp(26px,3.4vw,34px);font-weight:800}
+.stage-head p{color:var(--ink-2);max-width:62ch}
+.stage-body{padding:28px 32px;display:flex;flex-direction:column;gap:22px;min-width:0}
+.stage-foot{margin-top:auto;padding:16px 32px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px;background:var(--panel-2);border-radius:0 0 6px 6px}
+.stage-foot .hint{font-size:13px;color:var(--muted);margin-right:auto}
+.progress{height:3px;background:var(--line);border-radius:3px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--signal);transition:width .35s}
+
+/* install + connect */
+.steps-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.si{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:16px;align-items:start;padding:18px;border-bottom:1px solid var(--line);background:var(--panel)}
+.si:last-child{border-bottom:0}
+.si .num{font:700 13px var(--f-mono);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--panel-2);border:1px solid var(--line)}
+.si h3{font:600 16px var(--f-body);letter-spacing:0}
+.si p{font-size:14px;color:var(--muted);margin-top:3px}
+.si.ok .num{background:var(--go);border-color:var(--go);color:#fff}
+.tick{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:var(--r);padding:7px 11px;font-size:13px;font-weight:600;cursor:pointer;background:var(--panel);white-space:nowrap}
+.tick[aria-pressed="true"]{background:var(--go-soft);border-color:var(--go);color:var(--go)}
+.conn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.cc{border:1px solid var(--line);border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:10px;background:var(--panel)}
+.cc.ok{border-color:var(--go)}
+.cc-top{display:flex;align-items:center;gap:12px}
+.cc-ic{width:38px;height:38px;border-radius:8px;display:grid;place-items:center;background:var(--panel-2);border:1px solid var(--line)}
+.cc-ic svg{width:20px;height:20px}
+.cc h3{font:600 16px var(--f-body);letter-spacing:0}
+.cc .why{font-size:13.5px;color:var(--muted)}
+.cc details{font-size:13.5px;color:var(--ink-2)}
+.cc summary{cursor:pointer;color:var(--ink);font-weight:500}
+.cc ol{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.cc .row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:auto}
+.state{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 7px;border-radius:2px;background:var(--panel-2);color:var(--muted)}
+.state.ok{background:var(--go-soft);color:var(--go)}
+.callout{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;padding:14px 16px;border-radius:6px;background:var(--hold-soft);font-size:14px;color:var(--ink)}
+.callout svg{width:20px;height:20px;color:var(--hold)}
+.callout.info{background:var(--panel-2);border:1px solid var(--line)}
+.callout.info svg{color:var(--ink-2)}
+.copyline{display:flex;gap:10px;align-items:center;background:var(--board);color:var(--board-ink);border-radius:6px;padding:12px 12px 12px 16px;font:500 14px var(--f-mono);min-width:0}
+.copyline span{flex:1;min-width:0;overflow-x:auto;white-space:nowrap}
+.copyline .btn{background:var(--signal);color:var(--signal-ink)}
+.ways{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.way{padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.way+.way{border-left:1px solid var(--line);background:var(--panel-2)}
+.way h3{font-size:20px}
+.way .btn{align-self:flex-start}
+.howto{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:5px;font-size:14px;color:var(--ink-2)}
+.howto b{color:var(--ink)}
+@media (max-width:900px){.ways{grid-template-columns:1fr}.way+.way{border-left:0;border-top:1px solid var(--line)}}
+
+/* cv */
+.drop{border:2px dashed var(--line);border-radius:8px;padding:34px 24px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;background:var(--panel-2);transition:border-color .2s,background .2s;cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--signal);background:var(--signal-soft)}
+.drop svg{width:40px;height:40px;color:var(--signal)}
+.drop b{font-size:17px}
+.drop small{color:var(--muted)}
+.scan{display:none;flex-direction:column;gap:8px}
+.scan.on{display:flex}
+.scan .bar{height:6px;border-radius:4px;background:var(--line);overflow:hidden}
+.scan .bar i{display:block;height:100%;width:30%;background:var(--signal);animation:scan 1s ease-in-out infinite}
+@keyframes scan{0%{transform:translateX(-100%)}100%{transform:translateX(340%)}}
+.pastebox summary{cursor:pointer;font-size:14px;color:var(--ink-2)}
+.pastebox textarea{margin-top:10px}
+.result{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.result .who{padding:20px;background:var(--panel-2);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+.result .who .nm{font:800 22px/1.15 var(--f-display)}
+.result .stat{display:flex;align-items:baseline;gap:8px}
+.result .stat b{font:800 40px/1 var(--f-display);color:var(--signal);font-variant-numeric:tabular-nums}
+.result .det{padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.badge-ex{align-self:flex-start;font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 7px;border-radius:2px;background:var(--hold-soft);color:var(--hold)}
+.badge-ok{align-self:flex-start;font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 7px;border-radius:2px;background:var(--go-soft);color:var(--go)}
+.field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.field>.lb{font-weight:600;font-size:14px}
+.field>.lb small{font-weight:400;color:var(--muted);margin-left:6px}
+input[type=text],input[type=number],select,textarea{font:15px var(--f-body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--ink-2);outline:none;box-shadow:0 0 0 3px var(--signal-soft)}
+textarea{min-height:120px;resize:vertical}
+.tokens{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:6px;background:var(--panel);min-height:44px}
+.tokens:focus-within{border-color:var(--ink-2);box-shadow:0 0 0 3px var(--signal-soft)}
+.tok{display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:2px;padding:4px 4px 4px 9px;font-size:13.5px}
+.tok button{border:0;background:transparent;cursor:pointer;width:20px;height:20px;display:grid;place-items:center;color:var(--muted);border-radius:2px}
+.tok button:hover{background:var(--line);color:var(--ink)}
+.tokens input{border:0;flex:1;min-width:120px;padding:6px;box-shadow:none!important;background:transparent}
+.roles-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.roles-list li{padding-left:14px;position:relative}
+.roles-list li::before{content:"";position:absolute;left:0;top:9px;width:6px;height:6px;background:var(--signal)}
+
+/* filters */
+.fgroup{display:grid;grid-template-columns:200px minmax(0,1fr);gap:24px;padding-block:20px;border-bottom:1px solid var(--line)}
+.fgroup:first-child{padding-top:0}
+.fgroup:last-child{border-bottom:0}
+.fgroup>.ft h3{font:600 16px var(--f-body);letter-spacing:0}
+.fgroup>.ft p{font-size:13px;color:var(--muted);margin-top:4px}
+.fgroup>.fc{display:flex;flex-direction:column;gap:14px;min-width:0}
+.region{display:flex;flex-direction:column;gap:8px}
+.region .eyebrow{font-size:10.5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:2px;padding:7px 11px;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.chip .cc2{font:600 11px var(--f-mono);color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.chip[aria-pressed="true"] .cc2{color:var(--signal)}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.presets button{border:1px dashed var(--line);background:transparent;border-radius:2px;padding:5px 9px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.presets button:hover{border-color:var(--signal);color:var(--signal)}
+.switch{display:flex;align-items:center;gap:12px;cursor:pointer;font-size:14.5px}
+.switch input{appearance:none;width:42px;height:24px;border-radius:12px;background:var(--line);position:relative;cursor:pointer;transition:background .2s;flex:none}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+.switch input:checked{background:var(--go)}
+.switch input:checked::after{left:21px}
+.slider{display:flex;flex-direction:column;gap:6px}
+.slider .top{display:flex;justify-content:space-between;align-items:baseline}
+.slider output{font:700 22px var(--f-display);color:var(--signal);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--signal)}
+.slider .scale{display:flex;justify-content:space-between;font:11px var(--f-mono);color:var(--muted)}
+
+/* launch */
+.pass{display:grid;grid-template-columns:minmax(0,1fr) 210px;border-radius:10px;overflow:hidden;background:var(--panel);border:1px solid var(--line);box-shadow:0 22px 40px -30px rgba(0,0,0,.5)}
+.pass-main{padding:24px 26px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.pass-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.pass-top .al{font:800 15px var(--f-display);display:flex;gap:8px;align-items:center}
+.pass-top .al svg{width:22px;height:22px}
+.route-big{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center}
+.route-big .code{font:800 44px/1 var(--f-display);letter-spacing:-.02em}
+.route-big .code small{display:block;font:500 11px var(--f-mono);letter-spacing:.1em;color:var(--muted);margin-top:6px;text-transform:uppercase}
+.route-big .path{height:2px;background:repeating-linear-gradient(90deg,var(--line) 0 8px,transparent 8px 14px);position:relative}
+.route-big .path svg{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%);color:var(--signal);background:var(--panel);padding:0 2px}
+.dest{text-align:right}
+.pf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px}
+.pf div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pf .eyebrow{font-size:10px}
+.pf b{font:600 15px var(--f-body);overflow-wrap:anywhere}
+.pass-stub{border-left:2px dashed var(--line);padding:24px 20px;display:flex;flex-direction:column;gap:14px;background:var(--panel-2);position:relative}
+.pass-stub::before,.pass-stub::after{content:"";position:absolute;left:-11px;width:20px;height:20px;border-radius:50%;background:var(--ground)}
+.pass-stub::before{top:-10px}.pass-stub::after{bottom:-10px}
+.barcode{height:56px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,var(--ink) 4px 5px,transparent 5px 8px,var(--ink) 8px 11px,transparent 11px 12px);border-radius:2px;margin-top:auto}
+.codebox{position:relative}
+pre{font:13px/1.65 var(--f-mono);background:var(--board);color:var(--board-ink);border-radius:6px;padding:18px;margin:0;overflow-x:auto;white-space:pre}
+.codebox .btn{position:absolute;top:10px;right:10px}
+.next{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.nx{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.nx:last-child{border-bottom:0}
+.nx .t{font:700 12px var(--f-mono);color:var(--signal)}
+.nx code{font:500 14px var(--f-mono)}
+.nx small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+
+/* how + faq */
+.doc{padding-block:48px 72px;display:flex;flex-direction:column;gap:28px}
+.doc>header{display:flex;flex-direction:column;gap:10px;max-width:62ch}
+.doc h1{font-size:clamp(32px,5vw,48px);font-weight:800}
+.doc>header p{color:var(--ink-2);font-size:16.5px}
+.flow{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:20px}
+.flow svg{min-width:760px;width:100%;height:auto;display:block}
+.timeline{display:flex;flex-direction:column;gap:0;border-left:2px solid var(--line);margin-left:8px}
+.tl{position:relative;padding:0 0 26px 26px}
+.tl::before{content:"";position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--panel);border:2px solid var(--signal)}
+.tl .eyebrow{display:block;margin-bottom:4px}
+.tl h3{font-size:19px;margin-bottom:4px}
+.tl p{color:var(--ink-2);max-width:64ch}
+.faq{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font:700 18px var(--f-display);list-style:none;display:flex;justify-content:space-between;gap:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font:500 22px var(--f-mono);color:var(--signal)}
+.faq details[open] summary::after{content:"–"}
+.faq details p{margin-top:10px;color:var(--ink-2);max-width:70ch}
+footer.site{border-top:1px solid var(--line);padding-block:20px 28px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--ground);padding:10px 16px;border-radius:var(--r);font-size:14px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:40}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr;gap:32px;padding-top:36px}
+  .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .strip>div:nth-child(3){padding-left:0;border-left:0}
+  .strip>div:nth-child(n+3){border-top:1px solid var(--line)}
+  .wiz{grid-template-columns:1fr;gap:20px;padding-top:20px}
+  .legs{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}
+  .legs .route{display:none}
+  .leg{padding-bottom:0;grid-template-columns:26px auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:20px;padding:4px 12px 4px 4px;background:var(--panel)}
+  .leg::before{display:none}
+  .leg .dot{width:26px;height:26px}
+  .leg .lbl{padding-top:0;white-space:nowrap;font-size:13px}
+  .leg .lbl small{display:none}
+  .result,.duo,.pass{grid-template-columns:1fr}
+  .result .who{border-right:0;border-bottom:1px solid var(--line)}
+  .duo>div+div{border-left:0;border-top:1px solid var(--line)}
+  .pass-stub{border-left:0;border-top:2px dashed var(--line)}
+  .pass-stub::before,.pass-stub::after{display:none}
+  .fgroup{grid-template-columns:1fr;gap:12px}
+  .conn{grid-template-columns:1fr}
+}
+@media (max-width:620px){
+  .toplinks a:not(.keep){display:none}
+  .stage-head,.stage-body{padding-left:18px;padding-right:18px}
+  .stage-foot{padding-left:18px;padding-right:18px;flex-wrap:wrap}
+  .stage-foot .hint{flex-basis:100%}
+  .strip{grid-template-columns:1fr}
+  .strip>div,.strip>div+div{padding-left:0;border-left:0}
+  .strip>div+div{border-top:1px solid var(--line)}
+  .pf{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .route-big .code{font-size:32px}
+  .si{grid-template-columns:36px minmax(0,1fr)}
+  .si .tick{grid-column:2;justify-self:start}
+  .row2{grid-template-columns:minmax(0,1fr) 96px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plane" viewBox="0 0 24 24"><path fill="currentColor" d="M21 15.5v-1.8l-7.6-4.6V4.2a1.4 1.4 0 0 0-2.8 0v4.9L3 13.7v1.8l7.6-2.3v4.6l-2.1 1.5V21l3.5-1 3.5 1v-1.7l-2.1-1.5v-4.6z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1V4.5a1.5 1.5 0 0 1 3 0V11m0-4.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L3.6 14a1.6 1.6 0 0 1 2.6-1.8L8 14"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3l9.5 17h-19z"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 10v4.5M12 17.5v.1"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 11v6M12 7.5v.1"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M6 3h8l4 4v14H6z"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M14 3v4h4M9 12h6M9 16h6"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 21v-6m-2.5 2.5L12 15l2.5 2.5" transform="translate(6 -4) scale(.5)"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M3.5 6l8.5 7 8.5-7"/></symbol>
+  <symbol id="i-drive" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M8.5 4h7l6 10.5-3.5 6h-12L2.5 14.5z"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M8.5 4l6 10.5h7M15.5 4l-9.5 16.5M2.5 14.5h12"/></symbol>
+  <symbol id="i-sheet" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M4 9h16M4 15h16M10 9v12"/></symbol>
+  <symbol id="i-chrome" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M12 8.5h8.2M9 13.8L4.9 6.7M15 13.8l-4.1 7.1"/></symbol>
+</svg>
+
+<header class="topbar gutter">
+  <div class="wrap">
+    <a class="logo" href="#home"><svg><use href="#i-plane" style="color:var(--signal)"/></svg>Jobseeker Autopilot</a>
+    <nav class="toplinks" aria-label="Menu">
+      <a href="#home" data-nav="home">Beranda</a>
+      <a href="#how" data-nav="how">Cara kerja</a>
+      <a href="#faq" data-nav="faq">FAQ</a>
+      <a href="#install" data-nav="wizard" class="keep">Setup</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HOME -->
+<div class="page gutter" id="p-home">
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <span class="eyebrow">Plugin untuk aplikasi Claude</span>
+        <h1 style="margin-top:14px">Lamar kerja dengan <em>autopilot</em>. Kendali tetap di tanganmu.</h1>
+        <p class="sub">Claude milikmu mencari lowongan yang cocok dengan CV, membuang yang tidak mungkin, mengisi form di Chrome, dan mencatat setiap balasan rekruter ke Google Sheet.</p>
+        <div class="ctas">
+          <a class="btn btn-primary" href="#install">Mulai setup <span class="mono" style="opacity:.8">± 10 menit</span></a>
+          <a class="btn btn-quiet" href="#how">Lihat cara kerja</a>
+        </div>
+        <p class="fine">Memakai langganan Claude-mu sendiri. CV dibaca di browser ini, tidak diunggah ke server.</p>
+      </div>
+      <div class="board" aria-label="Contoh papan status lamaran">
+        <div class="board-head"><b>DEPARTURES</b><span>CONTOH · <span id="clock">08:00</span></span></div>
+        <div class="board-scroll"><table>
+          <thead><tr><th>ROLE</th><th>KOTA</th><th>MATCH</th><th>STATUS</th></tr></thead>
+          <tbody id="board-rows"></tbody>
+        </table></div>
+        <div class="board-foot"><span>42 DIPINDAI · 9 LOLOS FILTER</span><span class="blink">● LIVE</span></div>
+      </div>
+    </section>
+
+    <div class="strip">
+      <div><span class="k">01</span><h3>Cari</h3><p>Situs karier perusahaan, email rekruter, dan LinkedIn bila kamu minta.</p></div>
+      <div><span class="k">02</span><h3>Saring</h3><p>Bahasa lokal, sponsor visa, gaji minimum, dan lamaran ganda dibuang otomatis.</p></div>
+      <div><span class="k">03</span><h3>Isi</h3><p>Form diisi dari profilmu. Cover letter ditulis baru untuk tiap lowongan.</p></div>
+      <div><span class="k">04</span><h3>Pantau</h3><p>Reject, tes, dan undangan interview tercatat di tracker dari inbox-mu.</p></div>
+    </div>
+
+    <div class="duo">
+      <div>
+        <span class="eyebrow">Dikerjakan Claude</span>
+        <h3>Pekerjaan berulang yang menyita waktu</h3>
+        <ul>
+          <li><svg style="color:var(--go)"><use href="#i-check"/></svg><span>Membaca deskripsi lengkap dan menghitung skor kecocokan</span></li>
+          <li><svg style="color:var(--go)"><use href="#i-check"/></svg><span>Mengisi nama, kontak, CV, dan pertanyaan standar</span></li>
+          <li><svg style="color:var(--go)"><use href="#i-check"/></svg><span>Menyiapkan draft email untuk lowongan via email</span></li>
+          <li><svg style="color:var(--go)"><use href="#i-check"/></svg><span>Memperbarui status lamaran dari email balasan</span></li>
+        </ul>
+      </div>
+      <div>
+        <span class="eyebrow">Tetap kamu</span>
+        <h3>Keputusan dan hal yang sifatnya pribadi</h3>
+        <ul>
+          <li><svg style="color:var(--signal)"><use href="#i-hand"/></svg><span>Login, password, dan pembuatan akun</span></li>
+          <li><svg style="color:var(--signal)"><use href="#i-hand"/></svg><span>Centang consent, syarat, dan data diversity</span></li>
+          <li><svg style="color:var(--signal)"><use href="#i-hand"/></svg><span>Klik Submit dan kirim email</span></li>
+          <li><svg style="color:var(--signal)"><use href="#i-hand"/></svg><span>Jawaban Ya/Tidak yang tidak ada di CV</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WIZARD -->
+<div class="page gutter" id="p-wizard">
+  <div class="wrap wiz">
+    <nav class="legs" aria-label="Langkah setup">
+      <span class="route">Pre-flight checklist</span>
+      <a class="leg" href="#install" data-leg="install"><span class="dot">1</span><span class="lbl">Pasang plugin<small>Aplikasi & file plugin</small></span></a>
+      <a class="leg" href="#connect" data-leg="connect"><span class="dot">2</span><span class="lbl">Sambungkan akun<small>Gmail, Drive, Chrome</small></span></a>
+      <a class="leg" href="#cv" data-leg="cv"><span class="dot">3</span><span class="lbl">Upload CV<small>Dibaca di browser</small></span></a>
+      <a class="leg" href="#filters" data-leg="filters"><span class="dot">4</span><span class="lbl">Atur filter<small>Negara, gaji, visa</small></span></a>
+      <a class="leg" href="#launch" data-leg="launch"><span class="dot">5</span><span class="lbl">Take-off<small>Tempel ke Claude</small></span></a>
+    </nav>
+
+    <div class="stage" id="stage">
+      <div class="progress"><i id="prog"></i></div>
+
+      <!-- 1 install -->
+      <div class="step" data-step="install">
+        <div class="stage-head"><span class="eyebrow">Langkah 1 dari 5</span><h2>Pasang plugin di aplikasi Claude</h2><p>Jobseeker Autopilot berjalan di dalam akun Claude milikmu, jadi langkah pertama adalah memasangnya di sana.</p></div>
+        <div class="stage-body">
+          <div class="ways">
+            <div class="way">
+              <span class="badge-ok">Disarankan · update otomatis</span>
+              <h3>Lewat marketplace</h3>
+              <div class="copyline"><span id="mk">vickarzz/jobseeker-autopilot</span><button class="btn btn-sm" type="button" id="copy-mk">Salin</button></div>
+              <ol class="howto"><li>Di aplikasi Claude, buka <b>Customize → Plugins</b>.</li><li>Pilih <b>Add marketplace</b>, tempel alamat di atas.</li><li>Klik <b>Install</b> pada <b>Jobseeker Autopilot</b>.</li></ol>
+            </div>
+            <div class="way">
+              <span class="badge-ex">Alternatif</span>
+              <h3>Upload file plugin</h3>
+              <a class="btn btn-quiet" id="dl" href="jobseeker-autopilot.plugin" download>Download jobseeker-autopilot.plugin</a>
+              <ol class="howto"><li>Di aplikasi Claude, buka <b>Customize → Plugins</b>.</li><li>Pilih opsi upload, lalu pilih file yang barusan diunduh.</li><li>Untuk versi baru, ulangi langkah ini.</li></ol>
+            </div>
+          </div>
+          <div class="steps-list" id="install-list"></div>
+          <div class="callout info"><svg><use href="#i-info"/></svg><span>Plugin hanya bisa dipasang di paket Claude berbayar (Pro, Max, Team, atau Enterprise). Pemasangan selalu kamu setujui sendiri di aplikasi Claude.</span></div>
+        </div>
+        <div class="stage-foot"><span class="hint" id="hint-install"></span><a class="btn btn-quiet" href="#home">Kembali</a><a class="btn btn-primary" href="#connect" data-next="install">Lanjut</a></div>
+      </div>
+
+      <!-- 2 connect -->
+      <div class="step" data-step="connect">
+        <div class="stage-head"><span class="eyebrow">Langkah 2 dari 5</span><h2>Sambungkan akun yang dipakai Claude</h2><p>Akses diberikan langsung dari aplikasi Claude ke akunmu sendiri. Halaman ini tidak menyimpan password atau token apa pun.</p></div>
+        <div class="stage-body">
+          <div class="conn" id="conn"></div>
+          <div class="callout"><svg><use href="#i-warn"/></svg><span><b>LinkedIn melarang bot.</b> Plugin bekerja pelan di Chrome-mu sendiri dan membatasi jumlahnya, tapi risiko pembatasan akun tetap ada. Sumber utama adalah situs karier perusahaan.</span></div>
+        </div>
+        <div class="stage-foot"><span class="hint" id="hint-connect"></span><a class="btn btn-quiet" href="#install">Kembali</a><a class="btn btn-primary" href="#cv" data-next="connect">Lanjut</a></div>
+      </div>
+
+      <!-- 3 cv -->
+      <div class="step" data-step="cv">
+        <div class="stage-head"><span class="eyebrow">Langkah 3 dari 5</span><h2>Upload CV-mu</h2><p>Kami ambil skill, lama pengalaman, dan riwayat role untuk menyarankan filter. Profil lengkap tetap disusun Claude dari file CV-mu.</p></div>
+        <div class="stage-body">
+          <label class="drop" id="drop" for="cv-file">
+            <svg><use href="#i-file"/></svg>
+            <b>Tarik CV (PDF) ke sini atau klik untuk memilih</b>
+            <small>PDF atau TXT · diproses di browser ini saja</small>
+          </label>
+          <input type="file" id="cv-file" accept="application/pdf,.pdf,.txt" hidden>
+          <div class="scan" id="scan"><span class="eyebrow" id="scan-msg">Membaca CV…</span><div class="bar"><i></i></div></div>
+          <details class="pastebox"><summary>CV dalam format Word? Tempel isinya di sini</summary>
+            <textarea id="cv-text" placeholder="Tempel teks CV…"></textarea>
+            <div style="margin-top:10px"><button class="btn btn-quiet btn-sm" id="cv-read" type="button">Baca teks</button></div>
+          </details>
+          <div class="result" id="result"></div>
+        </div>
+        <div class="stage-foot"><span class="hint" id="hint-cv"></span><a class="btn btn-quiet" href="#connect">Kembali</a><a class="btn btn-primary" href="#filters" data-next="cv">Lanjut</a></div>
+      </div>
+
+      <!-- 4 filters -->
+      <div class="step" data-step="filters">
+        <div class="stage-head"><span class="eyebrow">Langkah 4 dari 5</span><h2>Lowongan seperti apa yang kamu mau?</h2><p>Filter ini dipakai Claude untuk membuang lowongan sebelum kamu melihatnya. Bisa diubah kapan saja dengan bilang ke Claude.</p></div>
+        <div class="stage-body">
+          <div class="fgroup"><div class="ft"><h3>Tujuan</h3><p>Pilih negara. Remote ikut dihitung bila diaktifkan.</p></div>
+            <div class="fc" id="regions"></div></div>
+          <div class="fgroup"><div class="ft"><h3>Role</h3><p>Disarankan dari CV-mu. Tekan Enter untuk menambah.</p></div>
+            <div class="fc">
+              <div class="field"><span class="lb">Judul role</span><div class="tokens" id="tk-roles"></div></div>
+              <div class="field"><span class="lb">Level</span><div class="chips" id="levels"></div></div>
+            </div></div>
+          <div class="fgroup"><div class="ft"><h3>Gaji & visa</h3><p>Lowongan dengan gaji maksimal di bawah angka ini dibuang.</p></div>
+            <div class="fc">
+              <div class="field"><span class="lb">Gaji minimum per bulan <small>gross</small></span>
+                <div class="row2"><input type="number" id="f-salary" min="0" step="100"><select id="f-currency"><option>EUR</option><option>USD</option><option>GBP</option><option>SGD</option><option>SAR</option><option>AED</option><option>QAR</option><option>IDR</option><option>JPY</option></select></div>
+                <div class="presets" id="presets"></div></div>
+              <label class="switch"><input type="checkbox" id="f-visa"><span>Saya butuh sponsor visa kerja di negara tujuan</span></label>
+              <label class="switch"><input type="checkbox" id="f-remote"><span>Terima posisi remote</span></label>
+            </div></div>
+          <div class="fgroup"><div class="ft"><h3>Bahasa</h3><p>Lowongan yang mewajibkan bahasa lain akan dibuang.</p></div>
+            <div class="fc"><div class="field"><div class="tokens" id="tk-langs"></div></div></div></div>
+          <div class="fgroup"><div class="ft"><h3>Ketatnya filter</h3><p>Skor dihitung dari syarat wajib, pengalaman, tools, dan domain.</p></div>
+            <div class="fc">
+              <div class="slider"><div class="top"><span class="lb" style="font-weight:600">Skor kecocokan minimum</span><output id="o-match">80%</output></div><input type="range" id="f-match" min="60" max="95" step="5"><div class="scale"><span>60 · lebih banyak</span><span>95 · lebih ketat</span></div></div>
+              <div class="slider"><div class="top"><span class="lb" style="font-weight:600">Maksimal lamaran per hari</span><output id="o-max">15</output></div><input type="range" id="f-max" min="3" max="40" step="1"><div class="scale"><span>3</span><span>40</span></div></div>
+            </div></div>
+          <div class="fgroup"><div class="ft"><h3>Pengecualian</h3><p>Perusahaan yang tidak boleh dilamar langsung, mis. karena jalur referral.</p></div>
+            <div class="fc">
+              <div class="field"><div class="tokens" id="tk-exclude"></div></div>
+              <div class="field"><span class="lb">Aturan khusus <small>opsional</small></span><input type="text" id="f-rules" placeholder="mis. UAE: lewati yang minta kandidat sudah di UAE"></div>
+            </div></div>
+        </div>
+        <div class="stage-foot"><span class="hint" id="hint-filters"></span><a class="btn btn-quiet" href="#cv">Kembali</a><a class="btn btn-primary" href="#launch" data-next="filters">Lihat flight plan</a></div>
+      </div>
+
+      <!-- 5 launch -->
+      <div class="step" data-step="launch">
+        <div class="stage-head"><span class="eyebrow">Langkah 5 dari 5</span><h2>Flight plan siap</h2><p>Salin rencana ini ke Claude. Claude akan mengecek koneksi, membuat tracker, dan menyimpan filtermu.</p></div>
+        <div class="stage-body">
+          <div class="pass" id="pass"></div>
+          <div class="codebox"><pre id="settings"></pre><button class="btn btn-sm" id="copy-settings" type="button">Salin</button></div>
+          <div class="field"><span class="lb">Setelah itu, perintah yang bisa kamu pakai</span><div class="next" id="next"></div></div>
+        </div>
+        <div class="stage-foot"><span class="hint">Pengaturan tersimpan di browser ini. Ubah kapan saja lewat langkah sebelumnya.</span><a class="btn btn-quiet" href="#filters">Ubah filter</a><button class="btn btn-primary" id="copy-launch" type="button">Salin perintah pertama</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW -->
+<div class="page gutter" id="p-how">
+  <div class="wrap doc">
+    <header><span class="eyebrow">Cara kerja</span><h1>Satu lamaran, dari lowongan sampai balasan</h1><p>Semua langkah dijalankan Claude di akunmu. Garis oranye menandai titik di mana kamu yang memutuskan.</p></header>
+    <div class="flow" aria-label="Diagram alur">
+      <svg viewBox="0 0 900 230" role="img" aria-labelledby="flow-t"><title id="flow-t">Alur Job Autopilot dari sumber lowongan sampai tracker</title>
+        <g font-family="IBM Plex Sans, sans-serif" font-size="13" fill="var(--ink)">
+          <g fill="var(--panel-2)" stroke="var(--line)"><rect x="10" y="20" width="150" height="40" rx="3"/><rect x="10" y="75" width="150" height="40" rx="3"/><rect x="10" y="130" width="150" height="40" rx="3"/></g>
+          <text x="22" y="45">Situs karier (ATS)</text><text x="22" y="100">Email rekruter</text><text x="22" y="155">LinkedIn (opsional)</text>
+          <g fill="none" stroke="var(--muted)" stroke-width="1.5"><path d="M160 40 L210 95"/><path d="M160 95 L210 95"/><path d="M160 150 L210 95"/></g>
+          <rect x="210" y="70" width="130" height="50" rx="3" fill="var(--panel)" stroke="var(--ink)"/><text x="225" y="92" font-weight="600">Filter keras</text><text x="225" y="109" font-size="11.5" fill="var(--muted)">bahasa, visa, gaji</text>
+          <path d="M340 95 L380 95" stroke="var(--muted)" stroke-width="1.5"/>
+          <rect x="380" y="70" width="130" height="50" rx="3" fill="var(--panel)" stroke="var(--ink)"/><text x="395" y="92" font-weight="600">Skor kecocokan</text><text x="395" y="109" font-size="11.5" fill="var(--muted)">vs profil CV</text>
+          <path d="M510 95 L550 95" stroke="var(--signal)" stroke-width="2"/>
+          <rect x="550" y="70" width="110" height="50" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="565" y="92" font-weight="600">Kamu pilih</text><text x="565" y="109" font-size="11.5" fill="var(--ink-2)">dari shortlist</text>
+          <path d="M660 95 L700 95" stroke="var(--muted)" stroke-width="1.5"/>
+          <rect x="700" y="70" width="90" height="50" rx="3" fill="var(--panel)" stroke="var(--ink)"/><text x="713" y="92" font-weight="600">Isi form</text><text x="713" y="109" font-size="11.5" fill="var(--muted)">di Chrome</text>
+          <path d="M790 95 L820 95" stroke="var(--signal)" stroke-width="2"/>
+          <rect x="820" y="70" width="70" height="50" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="831" y="100" font-weight="600">Submit</text>
+          <path d="M855 120 L855 185 L560 185" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+          <rect x="400" y="165" width="160" height="40" rx="3" fill="var(--go-soft)" stroke="var(--go)"/><text x="414" y="190" font-weight="600">Tracker Google Sheet</text>
+          <path d="M400 185 L340 185" stroke="var(--muted)" stroke-width="1.5"/>
+          <rect x="180" y="165" width="160" height="40" rx="3" fill="var(--panel)" stroke="var(--ink)"/><text x="194" y="190" font-weight="600">Sinkron balasan inbox</text>
+        </g>
+      </svg>
+    </div>
+    <div class="timeline">
+      <div class="tl"><span class="eyebrow">Pagi · ± 5 menit</span><h3>"Find jobs"</h3><p>Claude memindai lowongan baru, membuang yang tidak lolos filter, dan memberi shortlist berperingkat dengan skor serta alasan singkat.</p></div>
+      <div class="tl"><span class="eyebrow">Kamu memilih</span><h3>"Apply to 1, 3 and 5"</h3><p>Form dibuka di tab Chrome dan diisi dari profilmu. Claude berhenti sebelum Submit dan memberi tahu apa yang perlu kamu isi sendiri.</p></div>
+      <div class="tl"><span class="eyebrow">Lowongan via email</span><h3>Draft dulu, kirim belakangan</h3><p>Untuk lowongan yang minta CV dikirim lewat email, Claude membuat draft di Gmail. Email baru terkirim setelah kamu bilang kirim.</p></div>
+      <div class="tl"><span class="eyebrow">Sore</span><h3>"Check my application emails"</h3><p>Balasan rekruter dicocokkan ke lamaran. Reject, tes, dan undangan interview langsung tercatat, dan yang butuh tindakan muncul paling atas.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="page gutter" id="p-faq">
+  <div class="wrap doc">
+    <header><span class="eyebrow">FAQ</span><h1>Pertanyaan yang sering muncul</h1></header>
+    <div class="faq">
+      <details open><summary>Apakah saya perlu memberikan password Claude atau Gmail ke halaman ini?</summary><p>Tidak. Halaman ini tidak punya kolom login. Plugin dipasang di aplikasi Claude-mu, dan akses Gmail serta Drive diberikan lewat konektor resmi di aplikasi Claude.</p></details>
+      <details><summary>Token siapa yang dipakai?</summary><p>Token dan kuota langganan Claude milikmu sendiri, karena semuanya berjalan di akunmu.</p></details>
+      <details><summary>Ke mana CV saya dikirim?</summary><p>Di halaman ini, CV hanya dibaca di browser untuk menyarankan filter, dan tidak diunggah ke server. Saat kamu memberikan CV ke Claude, file itu disimpan di Google Drive-mu sendiri.</p></details>
+      <details><summary>Apakah Claude akan mengirim lamaran tanpa izin?</summary><p>Tidak. Claude berhenti sebelum tombol Submit dan sebelum mengirim email. Consent, data diversity, dan jawaban yang tidak ada di CV juga diserahkan ke kamu.</p></details>
+      <details><summary>Apakah akun LinkedIn saya aman?</summary><p>LinkedIn melarang bot. Plugin bekerja pelan, satu per satu, dan dibatasi sekitar 60 lowongan per hari di Chrome-mu sendiri, tapi risiko pembatasan akun tidak bisa dihilangkan. Sumber utama adalah situs karier perusahaan.</p></details>
+      <details><summary>Bagaimana kalau lowongan melarang bantuan AI?</summary><p>Claude tidak akan mengisi lowongan itu dan akan memintamu melamar sendiri.</p></details>
+      <details><summary>Bisakah plugin memastikan semua sudah tersambung?</summary><p>Bisa, dari dalam Claude. Ketik "Set up jobseeker autopilot" dan Claude mencoba satu panggilan uji ke Gmail, Drive, Sheets, dan Chrome, lalu menunjukkan mana yang perlu diperbaiki.</p></details>
+    </div>
+  </div>
+</div>
+
+<footer class="site gutter"><div class="wrap" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;width:100%"><span>Jobseeker Autopilot v0.2 · plugin untuk aplikasi Claude</span><span>Pengaturan tersimpan di browser ini saja</span></div></footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const S={get(k,d){try{const v=localStorage.getItem('ja2.'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('ja2.'+k,JSON.stringify(v))}catch(e){}}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),1800)}
+
+/* ---------- routing ---------- */
+const STEPS=['install','connect','cv','filters','launch'];
+function route(){
+  let h=location.hash.slice(1)||'home';
+  const isStep=STEPS.includes(h);
+  const page=isStep?'wizard':(['home','how','faq'].includes(h)?h:'home');
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+page));
+  document.querySelectorAll('[data-nav]').forEach(a=>{if(a.dataset.nav===page)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  if(isStep){
+    document.querySelectorAll('.step').forEach(s=>s.hidden=s.dataset.step!==h);
+    const i=STEPS.indexOf(h);$('prog').style.width=((i+1)/STEPS.length*100)+'%';
+    document.querySelectorAll('.leg').forEach(l=>{const j=STEPS.indexOf(l.dataset.leg);l.classList.toggle('cur',j===i);l.classList.toggle('done',stepDone(l.dataset.leg)&&j!==i)});
+    if(h==='launch')renderLaunch();
+    S.set('last',h);
+  }
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',route);
+
+/* ---------- home board ---------- */
+const BOARD=[['Senior BI Developer','AMSTERDAM','91%','sent','TERKIRIM'],['Power BI Analyst','VILNIUS','88%','ready','SIAP SUBMIT'],['Data Analytics Mgr','TALLINN','84%','filling','DIISI'],['Senior Data Analyst','BERLIN','82%','interview','INTERVIEW'],['BI Engineer','MUNICH','61%','skip','DILEWATI'],['Analytics Lead','ROTTERDAM','—','skip','WAJIB DUTCH']];
+$('board-rows').innerHTML=BOARD.map(r=>`<tr><td>${r[0]}</td><td><span class="flap">${r[1]}</span></td><td>${r[2]}</td><td><span class="st ${r[3]}">${r[4]}</span></td></tr>`).join('');
+(function tick(){const d=new Date();$('clock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');setTimeout(tick,30000)})();
+
+/* ---------- step 1 install ---------- */
+const st=S.get('state',{install:{},connect:{}});
+const INSTALL=[['app','Aplikasi Claude desktop terpasang','Paket berbayar yang mendukung plugin.'],['plugin','Jobseeker Autopilot terpasang','Muncul di Customize → Plugins.'],['test','Plugin merespons','Ketik "Set up jobseeker autopilot" di Claude. Kalau Claude menjalankan pengecekan, plugin aktif.']];
+$('copy-mk').addEventListener('click',()=>copy('vickarzz/jobseeker-autopilot','Alamat marketplace disalin'));
+function renderInstall(){
+  $('install-list').innerHTML=INSTALL.map(([k,t,d],i)=>`<div class="si ${st.install[k]?'ok':''}"><span class="num">${st.install[k]?'<svg width="16" height="16"><use href="#i-check"/></svg>':i+1}</span><div><h3>${t}</h3><p>${d}</p></div><button type="button" class="tick" aria-pressed="${!!st.install[k]}" data-k="${k}">${st.install[k]?'Sudah':'Tandai selesai'}</button></div>`).join('');
+  const n=INSTALL.filter(x=>st.install[x[0]]).length;$('hint-install').textContent=n===INSTALL.length?'Plugin siap.':`${n} dari ${INSTALL.length} selesai`;
+}
+$('install-list').addEventListener('click',e=>{const b=e.target.closest('.tick');if(!b)return;st.install[b.dataset.k]=!st.install[b.dataset.k];S.set('state',st);renderInstall()});
+
+/* ---------- step 2 connect ---------- */
+const CONN=[['gmail','i-mail','Gmail','Membaca balasan rekruter dan membuat draft email.',['Buka pengaturan Connectors di aplikasi Claude.','Pilih Gmail dan login dengan akun Google-mu.','Izinkan akses yang diminta.']],
+ ['drive','i-drive','Google Drive','Menyimpan CV dan shortlist harian.',['Di Connectors, pilih Google Drive.','Gunakan akun Google yang sama dengan Gmail.']],
+ ['sheets','i-sheet','Google Sheets','Tracker lamaran: status, tanggal, link.',['Di Connectors, pilih Google Sheets.','Claude akan membuat sheet "Job Autopilot Tracker" saat setup.']],
+ ['chrome','i-chrome','Claude in Chrome','Mengisi form lamaran di browser-mu.',['Pasang ekstensi Claude in Chrome dari Chrome Web Store.','Login dengan akun Claude yang sama.','Biarkan Chrome terbuka saat Claude mengisi form.']]];
+function renderConn(){
+  $('conn').innerHTML=CONN.map(([k,ic,t,w,how])=>`<div class="cc ${st.connect[k]?'ok':''}"><div class="cc-top"><span class="cc-ic"><svg><use href="#${ic}"/></svg></span><div><h3>${t}</h3></div><span class="state ${st.connect[k]?'ok':''}" style="margin-left:auto">${st.connect[k]?'Tersambung':'Belum'}</span></div><p class="why">${w}</p><details><summary>Cara menyambungkan</summary><ol>${how.map(x=>`<li>${x}</li>`).join('')}</ol></details><div class="row"><span></span><button type="button" class="tick" aria-pressed="${!!st.connect[k]}" data-k="${k}">${st.connect[k]?'Sudah tersambung':'Tandai tersambung'}</button></div></div>`).join('');
+  const n=CONN.filter(x=>st.connect[x[0]]).length;$('hint-connect').textContent=`${n} dari ${CONN.length} tersambung · dicek ulang oleh Claude di langkah 5`;
+}
+$('conn').addEventListener('click',e=>{const b=e.target.closest('.tick');if(!b)return;st.connect[b.dataset.k]=!st.connect[b.dataset.k];S.set('state',st);renderConn()});
+
+/* ---------- step 3 cv ---------- */
+const SKILLS=['Power BI','DAX','Power Query','Tableau','Looker','Qlik','Metabase','SQL','PL/SQL','T-SQL','Python','R','SAS','PySpark','Spark','Excel','VBA','Denodo','dbt','Databricks','Snowflake','BigQuery','Redshift','Microsoft Fabric','Azure','AWS','GCP','SSIS','SSRS','Informatica','Talend','Alteryx','Dataiku','SAP BusinessObjects','Cognos','OBIEE','Oracle','SQL Server','PostgreSQL','MySQL','Hadoop','Hive','Git','Jira','Confluence','Agile','Scrum','Power Apps','Power Automate','Machine Learning','NLP','LangChain','LangGraph','A/B testing','ETL','Data Modeling','Data Warehouse','Data Governance','Salesforce','SAP'];
+const ROLEW=/(analyst|engineer|developer|manager|consultant|specialist|scientist|architect|lead|head|director|officer)/i;
+const SAMPLE={example:true,name:'Dewi Lestari',email:'dewi@contoh.id',years:9,skills:['Power BI','DAX','SQL','Python','Tableau','Azure','SSIS'],roles:['Senior Data Analyst · PT Contoh Digital','BI Developer · Bank Contoh'],certs:['PL-300']};
+let profile=S.get('profile',null)||SAMPLE;
+function parseCV(text){
+  const t=text.replace(/\r/g,'');const lines=t.split('\n').map(s=>s.trim()).filter(Boolean);
+  const email=(t.match(/[\w.+-]+@[\w-]+\.[\w.]+/)||[''])[0];
+  const name=lines.find(l=>!/@|\d|curriculum|resume|cv\b/i.test(l)&&l.split(/\s+/).length>=2&&l.split(/\s+/).length<=6&&l.length<48)||'';
+  const skills=SKILLS.filter(s=>new RegExp('(^|[^a-z])'+s.replace(/[.*+?^${}()|[\]\\/]/g,'\\$&')+'([^a-z]|$)','i').test(t));
+  const ms=[...t.matchAll(/(?:(?:0?[1-9]|1[0-2])\/)?((?:19|20)\d\d)\s*[–—-]\s*(?:(?:(?:0?[1-9]|1[0-2])\/)?((?:19|20)\d\d)|(present|current|now|sekarang|saat ini))/gi)];
+  let years=0;if(ms.length){const now=new Date().getFullYear();const s=Math.min(...ms.map(m=>+m[1]));const e=Math.max(...ms.map(m=>m[2]?+m[2]:now));years=Math.max(0,e-s)}
+  const roles=lines.filter(l=>ROLEW.test(l)&&l.length<90&&!/@|http/.test(l)&&l.split(/\s+/).length<=12).slice(0,6);
+  const certs=[...new Set((t.match(/\b(PL-300|DP-\d{3}|AZ-\d{3}|PMP|CDMP|ITIL|CFA|AWS Certified [A-Za-z ]+|Google Data Analytics|Tableau [A-Za-z ]*Certified)/g)||[]))];
+  return {example:false,name,email,years,skills,roles,certs};
+}
+function tokenField(el,list,onChange,placeholder){
+  function draw(){el.innerHTML=list.map((v,i)=>`<span class="tok">${esc(v)}<button type="button" aria-label="Hapus ${esc(v)}" data-i="${i}"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6"/></svg></button></span>`).join('')+`<input type="text" placeholder="${placeholder}" aria-label="${placeholder}">`;}
+  el.addEventListener('click',e=>{const b=e.target.closest('button');if(b){list.splice(+b.dataset.i,1);draw();onChange();el.querySelector('input').focus()}else el.querySelector('input').focus()});
+  el.addEventListener('keydown',e=>{const inp=e.target;if(inp.tagName!=='INPUT')return;if((e.key==='Enter'||e.key===',')&&inp.value.trim()){e.preventDefault();inp.value.split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>{if(!list.includes(x))list.push(x)});draw();onChange();el.querySelector('input').focus()}else if(e.key==='Backspace'&&!inp.value&&list.length){list.pop();draw();onChange();el.querySelector('input').focus()}});
+  draw();return draw;
+}
+function renderResult(){
+  const p=profile;
+  $('result').innerHTML=`<div class="who">${p.example?'<span class="badge-ex">Contoh · ganti dengan CV-mu</span>':'<span class="badge-ok">Terbaca dari CV-mu</span>'}
+    <div><span class="eyebrow">Nama</span><div class="nm">${esc(p.name||'Belum terbaca')}</div><div style="color:var(--muted);font-size:14px">${esc(p.email||'')}</div></div>
+    <div class="stat"><b><input id="yrs" type="number" min="0" max="50" value="${p.years||0}" aria-label="Tahun pengalaman" style="width:84px;font:800 36px var(--f-display);color:var(--signal);border:0;border-bottom:2px solid var(--line);padding:0;background:transparent;border-radius:0"></b><span>tahun pengalaman</span></div>
+    <span style="font-size:12.5px;color:var(--muted)">Dihitung dari rentang tanggal di CV. Koreksi bila perlu.</span></div>
+   <div class="det">
+    <div class="field"><span class="lb">Skill terdeteksi <small>hapus atau tambah</small></span><div class="tokens" id="tk-skills"></div></div>
+    <div class="field"><span class="lb">Riwayat role</span>${p.roles.length?`<ul class="roles-list">${p.roles.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>`:'<span style="color:var(--muted);font-size:14px">Tidak terbaca. Claude akan membacanya dari file CV.</span>'}</div>
+    ${p.certs.length?`<div class="field"><span class="lb">Sertifikasi</span><div class="chips">${p.certs.map(c=>`<span class="chip" style="cursor:default">${esc(c)}</span>`).join('')}</div></div>`:''}
+   </div>`;
+  tokenField($('tk-skills'),p.skills,()=>{S.set('profile',profile);syncSuggest()},'Tambah skill');
+  $('yrs').addEventListener('input',e=>{p.years=+e.target.value||0;S.set('profile',profile)});
+  $('hint-cv').textContent=p.example?'Belum ada CV. Kamu bisa lanjut, tapi saran filter memakai contoh.':'CV terbaca. Lanjut untuk mengatur filter.';
+}
+function showScan(on,msg){$('scan').classList.toggle('on',on);if(msg)$('scan-msg').textContent=msg}
+function useText(text,src){
+  if(text.trim().length<80){showScan(false);toast('Teks terlalu pendek. Coba tempel isi CV.');return}
+  profile=parseCV(text);S.set('profile',profile);showScan(false);renderResult();syncSuggest(true);toast('CV terbaca dari '+src);
+}
+async function readFile(f){
+  showScan(true,'Membaca '+f.name+'…');
+  try{
+    if(/\.txt$/i.test(f.name)){useText(await f.text(),f.name);return}
+    const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;let text='';
+    for(let i=1;i<=Math.min(pdf.numPages,6);i++){const c=await (await pdf.getPage(i)).getTextContent();let y=null;for(const it of c.items){if(y!==null&&Math.abs(it.transform[5]-y)>2)text+='\n';text+=it.str+' ';y=it.transform[5]}text+='\n'}
+    useText(text,f.name);
+  }catch(e){showScan(false);toast('PDF tidak terbaca. Tempel isinya di kotak teks.')}
+}
+$('cv-file').addEventListener('change',e=>{if(e.target.files[0])readFile(e.target.files[0])});
+const drop=$('drop');
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)readFile(f)});
+$('cv-read').addEventListener('click',()=>useText($('cv-text').value,'teks yang ditempel'));
+
+/* ---------- step 4 filters ---------- */
+const REGIONS=[['Eropa',[['DE','Germany'],['NL','Netherlands'],['LT','Lithuania'],['EE','Estonia'],['PL','Poland'],['IE','Ireland'],['PT','Portugal'],['ES','Spain'],['SE','Sweden']]],['Timur Tengah',[['SA','Saudi Arabia'],['AE','UAE'],['QA','Qatar']]],['Asia',[['SG','Singapore'],['MY','Malaysia'],['JP','Japan'],['ID','Indonesia']]]];
+const PRESETS={EUR:[3500,'Eropa umum'],SAR:[25000,'Saudi'],AED:[24500,'UAE'],QAR:[24300,'Qatar'],SGD:[9000,'Singapore'],USD:[5000,'remote USD'],IDR:[25000000,'Indonesia'],GBP:[3500,'UK'],JPY:[500000,'Jepang']};
+const F=Object.assign({countries:['Germany','Netherlands','Lithuania','Estonia'],roles:[],levels:['Senior','Lead','Manager'],salary:3500,currency:'EUR',visa:true,remote:true,langs:['English','Indonesian'],match:80,max:15,exclude:[],rules:'',rolesEdited:false},S.get('filters',{}));
+function saveF(){S.set('filters',F);updateFilterHint()}
+function suggestRoles(p){const s=new Set(p.skills.map(x=>x.toLowerCase()));const o=[];if(s.has('power bi')||s.has('tableau'))o.push('BI Developer','Senior Data Analyst');if(s.has('dbt')||s.has('databricks')||s.has('snowflake'))o.push('Analytics Engineer');if(s.has('python')&&(s.has('machine learning')||s.has('nlp')))o.push('Data Scientist');if((p.years||0)>=8)o.push('BI Manager');return [...new Set(o)].length?[...new Set(o)]:['Data Analyst']}
+let drawRoles;
+function syncSuggest(force){if(force||!F.rolesEdited){F.roles.splice(0,F.roles.length,...suggestRoles(profile));if(drawRoles)drawRoles();saveF()}}
+function renderRegions(){$('regions').innerHTML=REGIONS.map(([r,cs])=>`<div class="region"><span class="eyebrow">${r}</span><div class="chips">${cs.map(([c,n])=>`<button type="button" class="chip" data-c="${n}" aria-pressed="${F.countries.includes(n)}"><span class="cc2">${c}</span>${n}</button>`).join('')}</div></div>`).join('')}
+$('regions').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;const c=b.dataset.c;F.countries=F.countries.includes(c)?F.countries.filter(x=>x!==c):[...F.countries,c];b.setAttribute('aria-pressed',F.countries.includes(c));saveF()});
+const LEVELS=['Mid','Senior','Lead','Manager','Head / Director'];
+function renderLevels(){$('levels').innerHTML=LEVELS.map(l=>`<button type="button" class="chip" data-l="${l}" aria-pressed="${F.levels.includes(l)}">${l}</button>`).join('')}
+$('levels').addEventListener('click',e=>{const b=e.target.closest('[data-l]');if(!b)return;const l=b.dataset.l;F.levels=F.levels.includes(l)?F.levels.filter(x=>x!==l):[...F.levels,l];b.setAttribute('aria-pressed',F.levels.includes(l));saveF()});
+function renderPresets(){$('presets').innerHTML=Object.entries(PRESETS).filter(([c])=>c===F.currency).map(([c,[v,l]])=>`<button type="button" data-v="${v}">Pakai patokan ${l}: ${c} ${v.toLocaleString('id-ID')}</button>`).join('')}
+$('presets').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;F.salary=+b.dataset.v;$('f-salary').value=F.salary;saveF()});
+$('f-salary').value=F.salary;$('f-salary').addEventListener('input',e=>{F.salary=+e.target.value||0;saveF()});
+$('f-currency').value=F.currency;$('f-currency').addEventListener('change',e=>{F.currency=e.target.value;if(PRESETS[F.currency]){F.salary=PRESETS[F.currency][0];$('f-salary').value=F.salary}renderPresets();saveF()});
+$('f-visa').checked=F.visa;$('f-visa').addEventListener('change',e=>{F.visa=e.target.checked;saveF()});
+$('f-remote').checked=F.remote;$('f-remote').addEventListener('change',e=>{F.remote=e.target.checked;saveF()});
+$('f-match').value=F.match;$('o-match').textContent=F.match+'%';$('f-match').addEventListener('input',e=>{F.match=+e.target.value;$('o-match').textContent=F.match+'%';saveF()});
+$('f-max').value=F.max;$('o-max').textContent=F.max;$('f-max').addEventListener('input',e=>{F.max=+e.target.value;$('o-max').textContent=F.max;saveF()});
+$('f-rules').value=F.rules;$('f-rules').addEventListener('input',e=>{F.rules=e.target.value;saveF()});
+function updateFilterHint(){$('hint-filters').textContent=`${F.countries.length} negara · ${F.roles.length} role · min. ${F.currency} ${Number(F.salary).toLocaleString('id-ID')}`}
+
+/* ---------- step 5 launch ---------- */
+function regionKey(c){return {EUR:'eu',GBP:'uk',USD:'usd',SGD:'sg',SAR:'middle_east',AED:'middle_east',QAR:'middle_east',IDR:'id',JPY:'jp'}[c]||'default'}
+function settingsText(){
+  const p=profile,f=F;
+  const L=['JOB-AUTOPILOT-SETTINGS v1',`target_roles: ${f.roles.join(', ')}`,`keywords: ${p.skills.slice(0,6).join(', ').toLowerCase()}`,`countries: ${f.countries.join(', ')}`,`remote_ok: ${f.remote?'yes':'no'}`,`needs_sponsorship: ${f.visa?'yes':'no'}`,`languages_spoken: ${f.langs.join(', ')}`,`salary_floor_${regionKey(f.currency)}: ${f.currency} ${Number(f.salary).toLocaleString('en-US')}/month`,`min_match: ${f.match}`,`seniority: ${f.levels.join(', ').toLowerCase()}`,`exclude_companies: ${f.exclude.join(', ')||'-'}`,`max_applications_per_day: ${f.max}`];
+  if(f.rules)L.push(`region_rules: ${f.rules}`);
+  if(!p.example)L.push(`profile_hint.years_total: ${p.years} (verify against CV)`,`profile_hint.skills: ${p.skills.join(', ')}`);
+  L.push('END');return L.join('\n');
+}
+function renderLaunch(){
+  const f=F,p=profile;const codes=f.countries.map(n=>{for(const [,cs] of REGIONS)for(const [c,nm] of cs)if(nm===n)return c;return n.slice(0,2).toUpperCase()});
+  const dest=codes.length>3?codes.slice(0,3).join(' ')+' +'+(codes.length-3):codes.join(' ')||'—';
+  $('pass').innerHTML=`<div class="pass-main"><div class="pass-top"><span class="al"><svg><use href="#i-plane" style="color:var(--signal)"/></svg>JOBSEEKER AUTOPILOT</span><span class="eyebrow">Flight plan · ${new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})}</span></div>
+    <div class="route-big"><div class="code">${esc(p.example?'YOU':(p.name||'YOU').split(/\s+/).map(w=>w[0]).join('').slice(0,3).toUpperCase())}<small>${esc(p.example?'Penumpang':p.name)}</small></div><div class="path"><svg><use href="#i-plane"/></svg></div><div class="code dest">${esc(dest)}<small>${f.countries.length} tujuan${f.remote?' + remote':''}</small></div></div>
+    <div class="pf"><div><span class="eyebrow">Role</span><b>${esc(f.roles.slice(0,2).join(', ')||'—')}${f.roles.length>2?' +'+(f.roles.length-2):''}</b></div><div><span class="eyebrow">Gaji minimum</span><b>${f.currency} ${Number(f.salary).toLocaleString('id-ID')}</b></div><div><span class="eyebrow">Visa</span><b>${f.visa?'Perlu sponsor':'Tidak perlu'}</b></div>
+    <div><span class="eyebrow">Skor minimum</span><b>${f.match}%</b></div><div><span class="eyebrow">Per hari</span><b>${f.max} lamaran</b></div><div><span class="eyebrow">Bahasa</span><b>${esc(f.langs.join(', '))}</b></div></div></div>
+    <div class="pass-stub"><span class="eyebrow">Pengalaman</span><b style="font:800 30px var(--f-display)">${p.years||'—'} th</b><span class="eyebrow">Skill</span><b>${p.skills.length} terdeteksi</b><div class="barcode" aria-hidden="true"></div></div>`;
+  $('settings').textContent=settingsText();
+}
+const NEXT=[['Find jobs','Shortlist berperingkat dengan skor dan alasan.'],['Apply to 1 and 3','Form diisi di Chrome; kamu centang consent dan Submit.'],['Draft an email for this job','Untuk lowongan via email, masuk ke Draft Gmail.'],['Check my application emails','Status tracker diperbarui dari inbox.']];
+$('next').innerHTML=NEXT.map(([c,d],i)=>`<div class="nx"><span class="t">${String(i+2).padStart(2,'0')}</span><span><code>${c}</code><small>${d}</small></span><button type="button" class="btn btn-quiet btn-sm" data-c="${esc(c)}">Salin</button></div>`).join('');
+async function copy(text,label){try{await navigator.clipboard.writeText(text);toast(label||'Tersalin')}catch(e){const r=document.createRange();r.selectNodeContents($('settings'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Teks dipilih, tekan Ctrl/Cmd+C')}}
+$('next').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b)copy(b.dataset.c,'Perintah disalin')});
+$('copy-settings').addEventListener('click',()=>copy(settingsText(),'Flight plan disalin'));
+$('copy-launch').addEventListener('click',()=>copy('Set up jobseeker autopilot\n\n'+settingsText(),'Siap ditempel ke Claude'));
+
+/* ---------- shared ---------- */
+function stepDone(k){if(k==='install')return INSTALL.every(x=>st.install[x[0]]);if(k==='connect')return CONN.every(x=>st.connect[x[0]]);if(k==='cv')return !profile.example;if(k==='filters')return F.countries.length>0&&F.roles.length>0;return false}
+
+renderInstall();renderConn();renderResult();renderRegions();renderLevels();renderPresets();
+if(!F.roles.length)F.roles.push(...suggestRoles(profile));
+drawRoles=tokenField($('tk-roles'),F.roles,()=>{F.rolesEdited=true;saveF()},'Tambah role');
+tokenField($('tk-langs'),F.langs,saveF,'Tambah bahasa');
+tokenField($('tk-exclude'),F.exclude,saveF,'Nama perusahaan');
+updateFilterHint();route();
+</script>
+
+</html>

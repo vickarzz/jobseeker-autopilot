@@ -1,0 +1,17 @@
+{
+  "name": "jobseeker-autopilot",
+  "version": "0.2.0",
+  "description": "Finds jobs that match your CV and filters, checks fit, fills applications in your browser for you to submit, drafts recruiter emails, and keeps a Google Sheet tracker in sync with your inbox.",
+  "author": {
+    "name": "Ahmad Zulfikar Rafsanjani"
+  },
+  "keywords": [
+    "jobs",
+    "job search",
+    "applications",
+    "cv",
+    "tracker"
+  ],
+  "homepage": "https://vickarzz.github.io/jobseeker-autopilot/",
+  "repository": "https://github.com/vickarzz/jobseeker-autopilot"
+}
